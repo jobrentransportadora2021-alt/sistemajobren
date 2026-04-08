@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Força o roteamento das páginas
-  pagesDir: 'pages', 
+  // Removemos a linha 'pagesDir' que estava causando o erro
 }
 
 module.exports = nextConfig
