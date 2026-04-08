@@ -8,6 +8,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const [focusField, setFocusField] = useState(null);
   const router = useRouter();
 
   const handleLogin = async (e) => {
@@ -37,68 +38,85 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#020202] text-white flex items-center justify-center p-4 relative overflow-hidden font-sans">
       
-      {/* Efeito de Iluminação de Fundo */}
-      <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] bg-cyan-900/20 blur-[130px] rounded-full pointer-events-none"></div>
-      <div className="absolute bottom-[-15%] right-[-10%] w-[40%] h-[40%] bg-blue-900/15 blur-[120px] rounded-full pointer-events-none"></div>
+      {/* 1. Background Dinâmico (Orbes de Luz) */}
+      <div className="absolute top-[-15%] left-[-5%] w-[50%] h-[50%] bg-cyan-600/10 blur-[150px] rounded-full animate-pulse"></div>
+      <div className="absolute bottom-[-15%] right-[-5%] w-[50%] h-[50%] bg-blue-600/10 blur-[150px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
 
-      <div className="w-full max-w-[440px] relative z-10">
+      <div className="w-full max-w-[450px] relative z-10">
         
-        {/* Brilho de Borda Neon */}
-        <div className="absolute -inset-1.5 bg-gradient-to-r from-cyan-600 to-blue-700 rounded-3xl blur opacity-30"></div>
+        {/* 2. Glow de Fundo do Card */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-[2.5rem] blur-2xl opacity-20 transition duration-1000"></div>
         
-        {/* Card Principal com Efeito de Vidro */}
-        <div className="relative bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/10 p-12 rounded-3xl shadow-[0_0_60px_rgba(6,182,212,0.15)]">
+        {/* 3. Card Principal com Efeito Glassmorphism Profundo */}
+        <div className="relative bg-[#0a0a0a]/80 backdrop-blur-2xl border border-white/10 p-10 md:p-14 rounded-[2.5rem] shadow-[0_0_80px_rgba(0,0,0,0.5)]">
           
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-extrabold italic tracking-tighter">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 font-black">JOBREN</span>
-              <span className="text-white ml-2 text-3xl">LOG</span>
+            <div className="inline-block px-4 py-1 rounded-full border border-cyan-500/30 bg-cyan-500/5 mb-6">
+              <span className="text-[10px] font-bold tracking-[0.4em] text-cyan-400 uppercase">Acesso Restrito</span>
+            </div>
+            
+            <h1 className="text-5xl font-black italic tracking-tighter mb-2 leading-none">
+              <span className="text-transparent bg-clip-text bg-gradient-to-br from-white via-cyan-400 to-blue-600">JOBREN</span>
             </h1>
-            <div className="h-[2px] w-24 bg-gradient-to-r from-cyan-500 to-blue-600 mx-auto mt-3 shadow-[0_0_15px_#06b6d4]"></div>
-            <p className="mt-5 text-gray-500 text-[10px] uppercase font-bold tracking-[0.4em]">Autenticação de Segurança</p>
+            <p className="text-gray-500 text-[11px] font-bold uppercase tracking-[0.2em]">Logística de Próxima Geração</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-7">
-            <div className="space-y-2.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">E-mail Corporativo</label>
+          <form onSubmit={handleLogin} className="space-y-6">
+            
+            {/* Campo E-mail */}
+            <div className="relative group">
               <input 
                 type="email" 
-                placeholder="nome@jobren.com" 
-                className="w-full bg-black/60 border border-white/10 p-4 rounded-xl text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all duration-300"
+                placeholder="E-mail Corporativo" 
+                className={`w-full bg-black/40 border ${focusField === 'email' ? 'border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'border-white/5'} p-5 rounded-2xl text-sm transition-all duration-500 outline-none placeholder:text-gray-700`}
+                onFocus={() => setFocusField('email')}
+                onBlur={() => setFocusField(null)}
                 onChange={e => setEmail(e.target.value)} 
                 required
               />
+              <div className={`absolute left-0 bottom-0 h-[2px] bg-gradient-to-r from-cyan-500 to-transparent transition-all duration-700 ${focusField === 'email' ? 'w-full' : 'w-0'}`}></div>
             </div>
 
-            <div className="space-y-2.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Senha de Acesso</label>
+            {/* Campo Senha */}
+            <div className="relative group">
               <input 
                 type="password" 
-                placeholder="••••••••••" 
-                className="w-full bg-black/60 border border-white/10 p-4 rounded-xl text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all duration-300"
+                placeholder="Chave de Segurança" 
+                className={`w-full bg-black/40 border ${focusField === 'pass' ? 'border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'border-white/5'} p-5 rounded-2xl text-sm transition-all duration-500 outline-none placeholder:text-gray-700`}
+                onFocus={() => setFocusField('pass')}
+                onBlur={() => setFocusField(null)}
                 onChange={e => setPassword(e.target.value)} 
                 required
               />
+              <div className={`absolute left-0 bottom-0 h-[2px] bg-gradient-to-r from-cyan-500 to-transparent transition-all duration-700 ${focusField === 'pass' ? 'w-full' : 'w-0'}`}></div>
             </div>
 
+            {/* Botão de Ação Robusto */}
             <button 
               disabled={carregando}
-              className={`w-full py-4.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-500 relative overflow-hidden group
+              className={`w-full py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all duration-500 relative overflow-hidden active:scale-[0.98]
                 ${carregando 
-                  ? 'bg-gray-800 cursor-not-allowed text-gray-500' 
-                  : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-black shadow-[0_0_30px_rgba(6,182,212,0.4)] active:scale-95'
+                  ? 'bg-gray-800 text-gray-500 cursor-not-allowed' 
+                  : 'bg-white text-black hover:bg-cyan-400 hover:shadow-[0_0_40px_rgba(34,211,238,0.4)]'
                 }`}
             >
-              <span className="relative z-10">{carregando ? 'VERIFICANDO...' : 'ENTRAR NO PAINEL'}</span>
+              <span className="relative z-10">{carregando ? 'Validando...' : 'Autenticar Acesso'}</span>
             </button>
           </form>
 
-          <div className="mt-12 flex items-center justify-between text-[9px] font-bold text-gray-600 uppercase tracking-tighter border-t border-white/5 pt-8">
-            <span>SÃO PAULO</span>
-            <div className="h-1.5 w-1.5 bg-cyan-900 rounded-full shadow-[0_0_5px_#164e63]"></div>
-            <span>LOGÍSTICA 4.0</span>
+          {/* Rodapé Industrial */}
+          <div className="mt-14 pt-8 border-t border-white/5 flex justify-between items-center opacity-40">
+            <div className="flex flex-col">
+              <span className="text-[8px] font-black uppercase tracking-widest">Sede</span>
+              <span className="text-[10px] font-bold">São Paulo, BR</span>
+            </div>
+            <div className="h-8 w-[1px] bg-white/10"></div>
+            <div className="flex flex-col text-right">
+              <span className="text-[8px] font-black uppercase tracking-widest">Versão</span>
+              <span className="text-[10px] font-bold">2.6.0-PRO</span>
+            </div>
           </div>
         </div>
       </div>
