@@ -1,5 +1,4 @@
-// pages/_app.js
-import '../styles/globals.css' // Alterado de '@/styles/...' para '../styles/...'
+import '../styles/globals.css' // Esta linha "liga" o visual em todas as páginas
 
 export default function App({ Component, pageProps }) {
   return <Component {...pageProps} />
