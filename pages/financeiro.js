@@ -1,41 +1,40 @@
-
-import { useEffect, useState } from 'react';
+"use client";
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 export default function Financeiro() {
   const [relatorio, setRelatorio] = useState([]);
 
   useEffect(() => {
-    const puxarDados = async () => {
-      const { data } = await supabase.from('relatorio_financeiro').select('*');
-      setRelatorio(data);
+    const carregar = async () => {
+      const { data } = await supabase.from('viagens').select('*, gastos(*)');
+      setRelatorio(data || []);
     };
-    puxarDados();
+    carregar();
   }, []);
 
   return (
-    <div className="p-10 bg-gray-900 min-h-screen text-white">
-      <h1 className="text-2xl text-green-400 font-bold mb-5">FINANCEIRO - RELATÓRIO DE LUCRO</h1>
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="border-b border-gray-700">
-            <th className="p-2">Cliente</th>
-            <th className="p-2">Venda (R$)</th>
-            <th className="p-2">Custos (R$)</th>
-            <th className="p-2 text-green-400">Lucro Líquido</th>
-          </tr>
-        </thead>
-        <tbody>
-          {relatorio.map(r => (
-            <tr key={r.viagem_id} className="border-b border-gray-800 hover:bg-gray-800">
-              <td className="p-2">{r.cliente_nome}</td>
-              <td className="p-2">{r.valor_venda}</td>
-              <td className="p-2 text-red-400">{r.total_custos}</td>
-              <td className="p-2 font-bold text-green-400">{r.lucro_liquido}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="p-10 bg-black min-h-screen text-white">
+      <h1 className="text-3xl text-green-500 font-bold mb-8 underline">FINANCEIRO - LUCRO LÍQUIDO</h1>
+      <div className="grid grid-cols-1 gap-4">
+        {relatorio.map(v => {
+          const totalGastos = v.gastos?.reduce((acc, curr) => acc + curr.valor_gasto, 0) || 0;
+          const lucro = v.valor_venda - totalGastos;
+          return (
+            <div key={v.id} className="p-6 bg-gray-900 border-l-8 border-green-500 flex justify-between items-center rounded">
+              <div>
+                <h3 className="text-xl font-bold uppercase">{v.cliente_nome}</h3>
+                <p className="text-xs text-gray-400">{v.origem} ➔ {v.destino}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm">Venda: R$ {v.valor_venda}</p>
+                <p className="text-sm text-red-400">Gastos: R$ {totalGastos}</p>
+                <p className="text-xl font-black text-green-400">LUCRO: R$ {lucro}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
