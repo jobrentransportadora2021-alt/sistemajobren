@@ -1,11 +1,6 @@
-import '../styles/globals.css';
+// pages/_app.js
+import '@/styles/globals.css' // Esta linha é crucial!
 
-function MyApp({ Component, pageProps }) {
-  return (
-    <main>
-      <Component {...pageProps} />
-    </main>
-  );
+export default function App({ Component, pageProps }) {
+  return <Component {...pageProps} />
 }
-
-export default MyApp;
