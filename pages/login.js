@@ -18,43 +18,99 @@ export default function Login() {
   };
 
   return (
-    /* h-screen, w-screen e flex são obrigatórios para o centro */
-    <div className="min-h-screen w-full bg-[#0a0a0a] flex items-center justify-center p-4 overflow-hidden">
+    <div style={{
+      backgroundColor: '#0a0a0a',
+      minHeight: '100vh',
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: 'sans-serif',
+      margin: 0,
+      padding: '20px',
+      boxSizing: 'border-box'
+    }}>
       
-      {/* Luz de fundo para dar profundidade */}
-      <div className="absolute w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none"></div>
-
-      {/* Card centralizado inspirado na sua imagem */}
-      <div className="relative w-full max-w-[400px] bg-[#161616] border border-white/5 p-10 rounded-[2.5rem] shadow-2xl text-center z-10">
+      <div style={{
+        backgroundColor: '#161616',
+        width: '100%',
+        maxWight: '400px',
+        padding: '40px',
+        borderRadius: '30px',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+        textAlign: 'center',
+        border: '1px solid rgba(255,255,255,0.05)'
+      }}>
         
-        <h1 className="text-3xl font-black tracking-tighter text-[#0084ff] uppercase mb-8">
+        <h1 style={{
+          color: '#0084ff',
+          fontSize: '28px',
+          fontWeight: '900',
+          letterSpacing: '-1px',
+          marginBottom: '30px',
+          textTransform: 'uppercase'
+        }}>
           JOBREN TRANSPORTES
         </h1>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <input 
             type="email" 
             placeholder="Nome de usuário" 
-            className="w-full bg-[#222] border border-white/5 p-4 rounded-2xl text-white placeholder:text-gray-500 outline-none focus:ring-2 focus:ring-[#0084ff]/50 transition-all"
+            style={{
+              backgroundColor: '#222',
+              border: '1px solid rgba(255,255,255,0.05)',
+              padding: '15px',
+              borderRadius: '12px',
+              color: 'white',
+              outline: 'none'
+            }}
             onChange={e => setEmail(e.target.value)}
             required
           />
           <input 
             type="password" 
             placeholder="Sua senha" 
-            className="w-full bg-[#222] border border-white/5 p-4 rounded-2xl text-white placeholder:text-gray-500 outline-none focus:ring-2 focus:ring-[#0084ff]/50 transition-all"
+            style={{
+              backgroundColor: '#222',
+              border: '1px solid rgba(255,255,255,0.05)',
+              padding: '15px',
+              borderRadius: '12px',
+              color: 'white',
+              outline: 'none'
+            }}
             onChange={e => setPassword(e.target.value)}
             required
           />
           <button 
             disabled={carregando}
-            className="w-full bg-[#0084ff] hover:bg-[#0074e0] text-white font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-sm mt-4"
+            style={{
+              backgroundColor: '#0084ff',
+              color: 'white',
+              border: 'none',
+              padding: '18px',
+              borderRadius: '12px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              marginTop: '10px',
+              textTransform: 'uppercase',
+              letterSpacing: '1px'
+            }}
           >
-            {carregando ? 'CARREGANDO...' : 'ACESSAR PAINEL'}
+            {carregando ? 'VERIFICANDO...' : 'ACESSAR PAINEL'}
           </button>
         </form>
 
-        <div className="mt-10 pt-6 border-t border-white/5 text-[9px] text-gray-600 flex justify-between font-bold">
+        <div style={{
+          marginTop: '30px',
+          paddingTop: '20px',
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: '10px',
+          color: '#444',
+          fontWeight: 'bold'
+        }}>
           <span>SÃO PAULO, BR</span>
           <span>SISTEMA V2.6</span>
         </div>
