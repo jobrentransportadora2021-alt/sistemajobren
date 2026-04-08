@@ -1,37 +1,40 @@
-import { useEffect, useState } from 'react';
+"use client";
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 export default function Operacional() {
   const [viagens, setViagens] = useState([]);
-  const [custo, setCusto] = useState({ viagem_id: '', desc: '', valor: '' });
+  const [gasto, setGasto] = useState({ id: '', valor: '', desc: '' });
 
-  const carregarViagens = async () => {
-    const { data } = await supabase.from('viagens').select('*').eq('status', 'agendado');
-    setViagens(data);
-  };
+  useEffect(() => {
+    const buscar = async () => {
+      const { data } = await supabase.from('viagens').select('*').eq('status', 'Pendente');
+      setViagens(data || []);
+    };
+    buscar();
+  }, []);
 
-  const lancarCusto = async () => {
-    await supabase.from('custos_operacao').insert([
-      { viagem_id: custo.viagem_id, descricao: custo.desc, valor_custo: parseFloat(custo.valor) }
+  const lancarGasto = async (e) => {
+    e.preventDefault();
+    const { error } = await supabase.from('gastos').insert([
+      { viagem_id: gasto.id, valor_gasto: parseFloat(gasto.valor), descricao: gasto.desc }
     ]);
-    alert("Custo Lançado!");
-    setCusto({ viagem_id: '', desc: '', valor: '' });
+    if (error) alert(error.message);
+    else alert("✅ Gasto Registrado!");
   };
-
-  useEffect(() => { carregarViagens(); }, []);
 
   return (
-    <div className="p-10 bg-gray-900 min-h-screen text-white">
-      <h1 className="text-2xl text-yellow-400 font-bold mb-5">OPERACIONAL - LANÇAR CUSTOS</h1>
-      <select className="p-2 bg-gray-800 mb-4 w-full max-w-md" onChange={e => setCusto({...custo, viagem_id: e.target.value})}>
-        <option>Selecione a Viagem</option>
-        {viagens.map(v => <option key={v.id} value={v.id}>{v.cliente_nome} ({v.destino})</option>)}
-      </select>
-      <div className="flex flex-col gap-4 max-w-md">
-        <input placeholder="Ex: Diesel ou Pedágio" className="p-2 bg-gray-800 border border-yellow-500" onChange={e => setCusto({...custo, desc: e.target.value})} />
-        <input type="number" placeholder="Valor do Gasto R$" className="p-2 bg-gray-800 border border-yellow-500" onChange={e => setCusto({...custo, valor: e.target.value})} />
-        <button onClick={lancarCusto} className="bg-yellow-600 p-3 font-bold hover:bg-yellow-400">REGISTRAR GASTO</button>
-      </div>
+    <div className="p-10 bg-black min-h-screen text-white">
+      <h1 className="text-3xl text-yellow-500 font-bold mb-8">OPERACIONAL (GASTOS)</h1>
+      <form onSubmit={lancarGasto} className="max-w-md flex flex-col gap-4">
+        <select className="p-3 bg-gray-900 border border-yellow-600" onChange={e => setGasto({...gasto, id: e.target.value})}>
+          <option>Selecione a Viagem</option>
+          {viagens.map(v => <option key={v.id} value={v.id}>{v.cliente_nome} - {v.destino}</option>)}
+        </select>
+        <input placeholder="Valor do Gasto R$" type="number" className="p-3 bg-gray-900 border border-yellow-600" onChange={e => setGasto({...gasto, valor: e.target.value})} />
+        <input placeholder="Descrição (Diesel, Pedágio...)" className="p-3 bg-gray-900 border border-yellow-600" onChange={e => setGasto({...gasto, desc: e.target.value})} />
+        <button className="bg-yellow-600 p-4 font-bold hover:bg-yellow-400 uppercase text-black">Registrar Gasto</button>
+      </form>
     </div>
   );
 }
