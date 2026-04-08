@@ -12,9 +12,32 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setCarregando(true);
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { alert("Erro: " + error.message); setCarregando(false); return; }
-    router.push('/'); 
+
+    if (error) {
+      alert("Erro no acesso: " + error.message);
+      setCarregando(false);
+      return;
+    }
+
+    // Busca o cargo na tabela 'perfis' conforme você configurou no Supabase
+    const { data: perfil, error: perfilError } = await supabase
+      .from('perfis')
+      .select('cargo')
+      .eq('id', data.user.id)
+      .single();
+
+    if (perfil) {
+      // Redirecionamento baseado no cargo inserido no banco
+      if (perfil.cargo === 'vendedor') router.push('/comercial');
+      else if (perfil.cargo === 'operacional') router.push('/operacional');
+      else if (perfil.cargo === 'financeiro') router.push('/financeiro');
+      else router.push('/'); 
+    } else {
+      alert("Perfil não encontrado. Verifique se o ID está correto na tabela 'perfis'.");
+      setCarregando(false);
+    }
   };
 
   return (
@@ -26,30 +49,19 @@ export default function Login() {
       alignItems: 'center',
       justifyContent: 'center',
       fontFamily: 'sans-serif',
-      margin: 0,
-      padding: '20px',
-      boxSizing: 'border-box'
+      margin: 0
     }}>
-      
       <div style={{
         backgroundColor: '#161616',
         width: '100%',
-        maxWight: '400px',
+        maxWidth: '400px',
         padding: '40px',
-        borderRadius: '30px',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+        borderRadius: '25px',
         textAlign: 'center',
-        border: '1px solid rgba(255,255,255,0.05)'
+        boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+        border: '1px solid #333'
       }}>
-        
-        <h1 style={{
-          color: '#0084ff',
-          fontSize: '28px',
-          fontWeight: '900',
-          letterSpacing: '-1px',
-          marginBottom: '30px',
-          textTransform: 'uppercase'
-        }}>
+        <h1 style={{ color: '#0084ff', fontWeight: '900', marginBottom: '30px', textTransform: 'uppercase' }}>
           JOBREN TRANSPORTES
         </h1>
 
@@ -57,60 +69,29 @@ export default function Login() {
           <input 
             type="email" 
             placeholder="Nome de usuário" 
-            style={{
-              backgroundColor: '#222',
-              border: '1px solid rgba(255,255,255,0.05)',
-              padding: '15px',
-              borderRadius: '12px',
-              color: 'white',
-              outline: 'none'
-            }}
+            style={{ padding: '15px', borderRadius: '12px', border: '1px solid #333', backgroundColor: '#222', color: 'white' }}
             onChange={e => setEmail(e.target.value)}
             required
           />
           <input 
             type="password" 
             placeholder="Sua senha" 
-            style={{
-              backgroundColor: '#222',
-              border: '1px solid rgba(255,255,255,0.05)',
-              padding: '15px',
-              borderRadius: '12px',
-              color: 'white',
-              outline: 'none'
-            }}
+            style={{ padding: '15px', borderRadius: '12px', border: '1px solid #333', backgroundColor: '#222', color: 'white' }}
             onChange={e => setPassword(e.target.value)}
             required
           />
           <button 
-            disabled={carregando}
-            style={{
-              backgroundColor: '#0084ff',
-              color: 'white',
-              border: 'none',
-              padding: '18px',
-              borderRadius: '12px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              marginTop: '10px',
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
+            style={{ 
+              backgroundColor: '#0084ff', color: 'white', padding: '18px', 
+              borderRadius: '12px', border: 'none', fontWeight: 'bold', cursor: 'pointer',
+              textTransform: 'uppercase', marginTop: '10px'
             }}
           >
             {carregando ? 'VERIFICANDO...' : 'ACESSAR PAINEL'}
           </button>
         </form>
 
-        <div style={{
-          marginTop: '30px',
-          paddingTop: '20px',
-          borderTop: '1px solid rgba(255,255,255,0.05)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          fontSize: '10px',
-          color: '#444',
-          fontWeight: 'bold'
-        }}>
+        <div style={{ marginTop: '30px', color: '#444', fontSize: '10px', display: 'flex', justifyContent: 'space-between' }}>
           <span>SÃO PAULO, BR</span>
           <span>SISTEMA V2.6</span>
         </div>
