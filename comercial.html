@@ -8,8 +8,8 @@
         :root { --primary: #2563eb; --bg: #f1f5f9; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 40px; }
         .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
-        h2 { color: var(--primary); margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
-        label { display: block; margin-top: 15px; font-weight: bold; font-size: 0.9rem; }
+        h2 { color: var(--primary); margin-top: 0; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
         input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         button { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; margin-top: 25px; font-weight: bold; }
     </style>
@@ -17,17 +17,14 @@
 <body>
     <div class="card">
         <h2>🛒 Comercial</h2>
-        <label>Cliente / Razão Social:</label>
-        <input type="text" id="cliente" placeholder="Ex: Lorenzetti">
-        
-        <label>Valor da Mercadoria (R$):</label>
+        <label>Cliente:</label>
+        <input type="text" id="cliente" placeholder="Razão Social">
+        <label>Valor Mercadoria (R$):</label>
         <input type="number" id="vlr_merca">
-        
         <label>Valor do Frete Cliente (R$):</label>
         <input type="number" id="vlr_frete">
-        
         <button onclick="salvarProposta()">Enviar para Operacional</button>
-        <p style="text-align:center;"><a href="index.html" style="color:#666; font-size:0.8rem;">Sair</a></p>
+        <p style="text-align:center;"><a href="#" onclick="logout()">Sair</a></p>
     </div>
 
     <script src="config.js"></script>
@@ -39,9 +36,10 @@
                 valor_frete_cliente: document.getElementById('vlr_frete').value,
                 status: 'pendente'
             }]);
-            if (error) alert("Erro: " + error.message);
-            else { alert("Carga registrada com sucesso!"); location.reload(); }
+            if (error) alert(error.message);
+            else { alert("Carga enviada!"); location.reload(); }
         }
+        function logout() { localStorage.clear(); window.location.href = 'index.html'; }
     </script>
 </body>
 </html>
