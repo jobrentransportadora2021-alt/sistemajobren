@@ -6,13 +6,15 @@
     <style>
         body { font-family: sans-serif; display: flex; justify-content: center; padding-top: 100px; background: #f0f2f5; }
         .login-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        input { display: block; width: 250px; margin-bottom: 10px; padding: 8px; }
-        button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; cursor: pointer; }
+        h2 { text-align: center; color: #1e293b; }
+        input { display: block; width: 250px; margin-bottom: 10px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #1d4ed8; }
     </style>
 </head>
 <body>
     <div class="login-card">
-        <h2>Acesso ao Sistema</h2>
+        <h2>Jobren Logística</h2>
         <input type="email" id="email" placeholder="Seu e-mail">
         <input type="password" id="password" placeholder="Sua senha">
         <button onclick="handleLogin()">Entrar</button>
@@ -24,20 +26,38 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            // Verificação básica se os campos estão vazios
+            if (!email || !password) {
+                alert("Preencha todos os campos");
+                return;
+            }
+
+            // Usando supabaseClient definido no config.js
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ 
+                email: email, 
+                password: password 
+            });
 
             if (error) {
-                alert("Erro: " + error.message);
+                alert("Erro no Login: " + error.message);
             } else {
-                // Ao logar, buscamos a função na tabela 'perfis' que criamos antes
-                const { data: perfil } = await supabase
-                    .from('perfis')
-                    .select('funcao')
-                    .eq('id', data.user.id)
-                    .single();
+                try {
+                    // Buscamos a função na tabela 'perfis'
+                    const { data: perfil, error: perfilError } = await supabaseClient
+                        .from('perfis')
+                        .select('funcao')
+                        .eq('id', data.user.id)
+                        .single();
 
-                localStorage.setItem('user_role', perfil.funcao);
-                window.location.href = 'dashboard.html';
+                    if (perfilError) throw perfilError;
+
+                    // Salva a função e redireciona
+                    localStorage.setItem('user_role', perfil.funcao);
+                    window.location.href = 'dashboard.html';
+                } catch (err) {
+                    console.error("Erro ao buscar perfil:", err);
+                    alert("Usuário logado, mas perfil não encontrado.");
+                }
             }
         }
     </script>
