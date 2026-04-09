@@ -12,10 +12,9 @@
         .login-card h2 { margin-bottom: 1.5rem; text-align: center; font-size: 1.5rem; color: var(--primary); }
         .form-group { margin-bottom: 1rem; }
         label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; }
-        input { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; box-sizing: border-box; transition: border 0.2s; }
-        input:focus { outline: none; border-color: var(--primary); ring: 2px var(--primary); }
-        button { width: 100%; padding: 0.75rem; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 1rem; margin-top: 1rem; transition: opacity 0.2s; }
-        button:hover { opacity: 0.9; }
+        input { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 0.75rem; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 1rem; margin-top: 1rem; }
+        button:disabled { background: #94a3b8; }
         .loader { display: none; text-align: center; margin-top: 10px; font-size: 0.8rem; color: #64748b; }
     </style>
 </head>
@@ -35,7 +34,7 @@
         </div>
 
         <button id="btnLogin">Entrar no Sistema</button>
-        <div id="loader" class="loader">Validando credenciais...</div>
+        <div id="loader" class="loader">Validando acesso e cargo...</div>
     </div>
 
     <script src="config.js"></script>
@@ -49,24 +48,16 @@
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
 
-                // 1. Verificação de Preenchimento
                 if (!email || !password) {
-                    alert("Por favor, preencha todos os campos.");
+                    alert("Preencha todos os campos.");
                     return;
                 }
 
-                // 2. Verificação se o Supabase carregou do config.js
-                if (typeof supabaseClient === 'undefined') {
-                    alert("Erro técnico: Conexão com Supabase não encontrada. Verifique o arquivo config.js.");
-                    return;
-                }
-
-                // Inicia carregamento
                 btnLogin.disabled = true;
                 loader.style.display = 'block';
 
                 try {
-                    // 3. Tentativa de Login
+                    // 1. Autenticação
                     const { data, error } = await supabaseClient.auth.signInWithPassword({
                         email: email,
                         password: password
@@ -74,23 +65,34 @@
 
                     if (error) throw error;
 
-                    // 4. Busca de Perfil (Comercial/Operacional/Financeiro)
+                    // 2. Busca o cargo (funcao) na tabela perfis
                     const { data: perfil, error: perfilError } = await supabaseClient
                         .from('perfis')
                         .select('funcao')
                         .eq('id', data.user.id)
                         .single();
 
-                    if (perfilError) {
-                        alert("Acesso autorizado, mas seu cargo (perfil) não foi configurado. Contate o administrador.");
-                    } else {
-                        // 5. Sucesso - Salva e Redireciona
-                        localStorage.setItem('user_role', perfil.funcao);
-                        window.location.href = 'dashboard.html';
+                    if (perfilError || !perfil) {
+                        alert("Usuário sem cargo definido. Fale com o admin.");
+                        return;
                     }
 
+                    // 3. Salva a sessão localmente
+                    localStorage.setItem('user_role', perfil.funcao);
+                    localStorage.setItem('user_id', data.user.id);
+
+                    // 4. REDIRECIONAMENTO POR PÁGINA FÍSICA
+                    const destino = {
+                        'admin': 'admin.html',
+                        'comercial': 'comercial.html',
+                        'operacional': 'operacional.html',
+                        'financeiro': 'financeiro.html'
+                    };
+
+                    window.location.href = destino[perfil.funcao] || 'index.html';
+
                 } catch (err) {
-                    alert("Falha no login: " + err.message);
+                    alert("Erro: " + err.message);
                 } finally {
                     btnLogin.disabled = false;
                     loader.style.display = 'none';
