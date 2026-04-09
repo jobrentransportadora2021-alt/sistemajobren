@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sistema Logística - Login</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; padding-top: 100px; background: #f0f2f5; }
+        .login-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { display: block; width: 250px; margin-bottom: 10px; padding: 8px; }
+        button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>Acesso ao Sistema</h2>
+        <input type="email" id="email" placeholder="Seu e-mail">
+        <input type="password" id="password" placeholder="Sua senha">
+        <button onclick="handleLogin()">Entrar</button>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        async function handleLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                alert("Erro: " + error.message);
+            } else {
+                // Ao logar, buscamos a função na tabela 'perfis' que criamos antes
+                const { data: perfil } = await supabase
+                    .from('perfis')
+                    .select('funcao')
+                    .eq('id', data.user.id)
+                    .single();
+
+                localStorage.setItem('user_role', perfil.funcao);
+                window.location.href = 'dashboard.html';
+            }
+        }
+    </script>
+</body>
+</html>
