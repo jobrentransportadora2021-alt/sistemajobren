@@ -1,62 +1,27 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Jobren - Operacional</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { font-family: sans-serif; background: #f1f5f9; padding: 20px; }
-        .card { max-width: 700px; margin: auto; background: white; padding: 25px; border-radius: 12px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
-        .fase { background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        label { display: block; font-weight: bold; margin-top: 10px; }
-        input, select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
-        button { width: 100%; background: #059669; color: white; padding: 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>🚚 Operacional - 2 Motoristas</h2>
-        <label>Escolha a Carga do Comercial:</label>
-        <select id="select_proposta"><option>Carregando...</option></select>
+async function carregar() {
+    // Agora buscamos também as novas informações
+    const { data } = await supabaseClient
+        .from('propostas')
+        .select('id, cliente_nome, valor_frete_cliente, vendedor_nome, descricao_mercadoria, valor_sugerido_operacional, foto_url')
+        .eq('status', 'pendente');
 
-        <div class="grid">
-            <div class="fase">
-                <strong>Motorista 1 (Origem/Base)</strong>
-                <label>Nome:</label><input type="text" id="mot1">
-                <label>Valor (R$):</label><input type="number" id="vlr1">
-            </div>
-            <div class="fase">
-                <strong>Motorista 2 (Base/Destino)</strong>
-                <label>Nome:</label><input type="text" id="mot2">
-                <label>Valor (R$):</label><input type="number" id="vlr2">
-            </div>
-        </div>
-        <button onclick="salvar()">Finalizar e Mandar para Financeiro</button>
-    </div>
-
-    <script src="config.js"></script>
-    <script>
-        async function carregar() {
-            const { data } = await supabaseClient.from('propostas').select('*').eq('status', 'pendente');
-            document.getElementById('select_proposta').innerHTML = data.map(p => `<option value="${p.id}">${p.cliente_nome}</option>`).join('');
-        }
-        carregar();
-
-        async function salvar() {
-            const propId = document.getElementById('select_proposta').value;
-            const { error } = await supabaseClient.from('operacoes').insert([{
-                proposta_id: propId,
-                motorista_nome: document.getElementById('mot1').value,
-                valor_pago_motorista: document.getElementById('vlr1').value,
-                motorista_2_nome: document.getElementById('mot2').value,
-                valor_pago_motorista_2: document.getElementById('vlr2').value
-            }]);
-            if (!error) {
-                await supabaseClient.from('propostas').update({ status: 'concluido' }).eq('id', propId);
-                alert("Sucesso!"); location.reload();
-            }
-        }
-    </script>
-</body>
-</html>
+    const select = document.getElementById('select_proposta');
+    
+    if (data && data.length > 0) {
+        select.innerHTML = data.map(p => `
+            <option value="${p.id}">
+                ${p.cliente_nome} | Sugestão: R$ ${p.valor_sugerido_operacional} (${p.vendedor_nome})
+            </option>
+        `).join('');
+        
+        // Adicione um evento para mostrar os detalhes quando trocar a carga selecionada
+        select.onchange = () => {
+            const selecionada = data.find(x => x.id == select.value);
+            console.log("Detalhes da carga:", selecionada.descricao_mercadoria);
+            // Aqui você pode colocar um alert ou preencher um campo de texto com a descrição
+        };
+    } else {
+        select.innerHTML = '<option>Nenhuma carga pendente...</option>';
+    }
+}
+carregar();
