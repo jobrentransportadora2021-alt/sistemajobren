@@ -2,118 +2,69 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren - Financeiro Consolidado</title>
+    <title>Jobren - Financeiro Integrado</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
         .container { max-width: 700px; margin: auto; }
-        h2 { color: #1e3a8a; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
-        
         .card { 
             background: white; padding: 20px; border-radius: 15px; 
             border-left: 10px solid #2563eb; margin-bottom: 20px;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        
-        .cliente-header { font-size: 1.3rem; font-weight: bold; color: #1e293b; margin-bottom: 15px; display: block; }
-        .grid-financeiro { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        
-        .mini-box { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 5px; }
-        .valor { font-size: 1.15rem; font-weight: 700; }
-        
-        .resultado-final { 
-            margin-top: 20px; padding: 15px; border-radius: 10px; 
-            text-align: center; border: 2px dashed #cbd5e1;
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .box { background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: bold; }
+        .valor { font-size: 1.1rem; font-weight: 700; display: block; }
+        .lucro-box { 
+            margin-top: 15px; padding: 15px; border-radius: 10px; text-align: center;
+            font-size: 1.4rem; font-weight: 900;
         }
-        .lucro-texto { font-size: 1.5rem; font-weight: 900; display: block; }
-        
-        .badge-tag { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-bottom: 5px; display: inline-block; }
-        .bg-comercial { background: #dbeafe; color: #1e40af; }
-        .bg-operacional { background: #fef3c7; color: #92400e; }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <h2>💰 Resumo Financeiro (Comercial + Operacional)</h2>
-        <div id="lista">Sincronizando dados das tabelas...</div>
+        <h2>💰 Financeiro: Comercial + Operacional</h2>
+        <div id="lista">Sincronizando...</div>
     </div>
 
     <script src="config.js"></script>
-    
     <script>
-        async function carregarFinanceiro() {
-            const listaDiv = document.getElementById('lista');
+        async function carregar() {
+            const { data, error } = await supabaseClient
+                .from('financeiro_consolidado')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-            try {
-                // Buscando da VIEW financeira que integra as duas tabelas
-                const { data, error } = await supabaseClient
-                    .from('financeiro_consolidado')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+            if (error) {
+                document.getElementById('lista').innerHTML = "Erro ao carregar view.";
+                return;
+            }
 
-                if (error) throw error;
-
-                if (!data || data.length === 0) {
-                    listaDiv.innerHTML = `
-                        <div class="card" style="border-left-color: #94a3b8; text-align: center;">
-                            <p>Nenhuma operação com proposta vinculada foi encontrada.</p>
-                            <small>Certifique-se de que a coluna <b>proposta_id</b> na tabela <b>operacoes</b> está preenchida corretamente.</small>
-                        </div>`;
-                    return;
-                }
-
-                listaDiv.innerHTML = data.map(i => {
-                    // Ajuste dos nomes para bater com a VIEW SQL
-                    const receita = Number(i.receita_comercial || 0);
-                    const custo = Number(i.custo_operacional || 0);
-                    const lucro = Number(i.lucro_liquido || 0);
-                    
-                    // Cores dinâmicas para lucro ou prejuízo
-                    const corSucesso = lucro >= 0 ? '#166534' : '#991b1b';
-                    const fundoSucesso = lucro >= 0 ? '#dcfce7' : '#fee2e2';
-
-                    return `
-                        <div class="card">
-                            <span class="cliente-header">👤 ${i.cliente_nome || 'Cliente Não Identificado'}</span>
-                            
-                            <div class="grid-financeiro">
-                                <div class="mini-box">
-                                    <span class="badge-tag bg-comercial">COMERCIAL</span>
-                                    <span class="label">Receita do Frete</span>
-                                    <span class="valor" style="color: #2563eb;">R$ ${receita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                                </div>
-                                <div class="mini-box">
-                                    <span class="badge-tag bg-operacional">OPERACIONAL</span>
-                                    <span class="label">Custo Motorista</span>
-                                    <span class="valor" style="color: #dc2626;">R$ ${custo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                                </div>
+            document.getElementById('lista').innerHTML = data.map(i => {
+                const lucro = Number(i.lucro_liquido);
+                return `
+                    <div class="card">
+                        <span style="font-weight:bold; font-size:1.2rem;">👤 ${i.cliente_nome || 'Sem vínculo'}</span>
+                        <div class="grid">
+                            <div class="box">
+                                <span class="label">Receita (Comercial)</span>
+                                <span class="valor" style="color:#2563eb">R$ ${Number(i.receita_comercial).toLocaleString('pt-BR')}</span>
                             </div>
-
-                            <div class="resultado-final" style="background: ${fundoSucesso}; border-color: ${corSucesso}44;">
-                                <span class="label" style="color: ${corSucesso};">Lucro Líquido Final</span>
-                                <span class="lucro-texto" style="color: ${corSucesso};">
-                                    R$ ${lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                                </span>
+                            <div class="box">
+                                <span class="label">Custo (Operacional)</span>
+                                <span class="valor" style="color:#dc2626">R$ ${Number(i.custo_operacional).toLocaleString('pt-BR')}</span>
                             </div>
                         </div>
-                    `;
-                }).join('');
-
-            } catch (err) {
-                console.error("Erro completo:", err);
-                listaDiv.innerHTML = `
-                    <div class="card" style="border-left-color: #dc2626;">
-                        <b style="color: #dc2626;">Erro ao carregar dados:</b><br>
-                        <small>${err.message}</small>
-                    </div>`;
-            }
+                        <div class="lucro-box" style="background:${lucro >= 0 ? '#dcfce7' : '#fee2e2'}; color:${lucro >= 0 ? '#166534' : '#991b1b'}">
+                            <span class="label" style="color:inherit">Resultado Final</span>
+                            R$ ${lucro.toLocaleString('pt-BR')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
-
-        // Inicia a carga ao abrir a página
-        carregarFinanceiro();
+        carregar();
     </script>
 </body>
 </html>
