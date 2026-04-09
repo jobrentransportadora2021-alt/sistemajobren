@@ -3,53 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren - Financeiro Integrado</title>
+    <title>Jobren - Financeiro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
-        .container { max-width: 800px; margin: 0 auto; }
-        h2 { display: flex; align-items: center; gap: 10px; color: #1e3a8a; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
+        .container { max-width: 700px; margin: auto; }
+        h2 { color: #2563eb; border-bottom: 2px solid #e2e8f0; pb: 10px; }
         
-        .item { 
-            background: white; 
-            padding: 20px; 
-            border-radius: 12px; 
-            border-left: 8px solid #2563eb; 
-            margin-bottom: 15px; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        .card { 
+            background: white; padding: 20px; border-radius: 12px; 
+            border-left: 8px solid #2563eb; margin-bottom: 15px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
         
-        .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
-        .label { font-size: 0.85rem; color: #64748b; text-transform: uppercase; display: block; }
+        .info-row { display: flex; justify-content: space-between; margin: 10px 0; }
+        .label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: bold; }
         .valor { font-weight: 600; font-size: 1.1rem; }
         
-        .lucro-container { 
-            background: #f0fdf4; 
-            padding: 10px; 
-            border-radius: 6px; 
-            margin-top: 10px; 
-            border: 1px solid #bbf7d0;
+        .lucro-destaque { 
+            background: #dcfce7; padding: 12px; border-radius: 8px; 
+            text-align: center; border: 1px solid #bbf7d0; margin-top: 15px;
         }
-        .lucro { color: #166534; font-weight: 800; font-size: 1.2rem; }
-        .error { color: #dc2626; background: #fee2e2; padding: 15px; border-radius: 8px; }
+        .lucro-texto { color: #166534; font-size: 1.3rem; font-weight: 800; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>💰 Financeiro - Resumo do Operacional</h2>
-        <hr>
-        <div id="lista">Carregando dados financeiros...</div>
+        <h2>💰 Resumo Financeiro Operacional</h2>
+        <div id="lista">Carregando dados sincronizados...</div>
     </div>
 
     <script src="config.js"></script>
     
     <script>
         async function carregarFinanceiro() {
-            const lista = document.getElementById('lista');
+            const listaDiv = document.getElementById('lista');
 
             try {
-                // Busca os dados da View ou Tabela
+                // Buscando da VIEW que acabamos de criar
                 const { data, error } = await supabaseClient
                     .from('financeiro_consolidado')
                     .select('*')
@@ -58,48 +50,45 @@
                 if (error) throw error;
 
                 if (!data || data.length === 0) {
-                    lista.innerHTML = `
-                        <div class="item" style="border-left-color: #cbd5e1">
-                            <p>Nenhum dado recebido do operacional até o momento.</p>
-                        </div>`;
+                    listaDiv.innerHTML = "<p>Nenhuma operação com proposta vinculada encontrada.</p>";
                     return;
                 }
 
-                lista.innerHTML = data.map(i => {
+                listaDiv.innerHTML = data.map(i => {
                     const receita = Number(i.receita || 0);
-                    const custos = Number(i.custo_total || 0);
-                    const lucro = Number(i.lucro_operacional || (receita - custos));
+                    const custo = Number(i.custo_previsto || 0);
+                    const lucro = Number(i.lucro_estimado || 0);
 
                     return `
-                        <div class="item">
-                            <strong style="font-size: 1.2rem;">👤 Cliente: ${i.cliente_nome}</strong>
+                        <div class="card">
+                            <div class="label">Cliente</div>
+                            <div class="valor" style="font-size: 1.3rem; margin-bottom: 15px;">👤 ${i.cliente_nome || 'Não identificado'}</div>
                             
-                            <div class="grid-info">
+                            <div class="info-row">
                                 <div>
-                                    <span class="label">Receita Bruta</span>
-                                    <span class="valor">R$ ${receita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                                    <span class="label">Receita do Frete</span>
+                                    <span class="valor" style="color: #2563eb;">R$ ${receita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                                 </div>
                                 <div>
-                                    <span class="label">Custos Operacionais</span>
-                                    <span class="valor" style="color: #991b1b;">R$ ${custos.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                                    <span class="label">Custo Previsto</span>
+                                    <span class="valor" style="color: #dc2626;">R$ ${custo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                                 </div>
                             </div>
 
-                            <div class="lucro-container">
-                                <span class="label">Resultado Líquido</span>
-                                <span class="lucro">R$ ${lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                            <div class="lucro-destaque">
+                                <span class="label" style="color: #166534;">Lucro Estimado</span>
+                                <span class="lucro-texto">R$ ${lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
                             </div>
                         </div>
                     `;
                 }).join('');
 
             } catch (err) {
-                console.error("Erro crítico:", err);
-                lista.innerHTML = `<div class="error"><strong>Erro de Conexão:</strong> ${err.message}</div>`;
+                console.error("Erro:", err);
+                listaDiv.innerHTML = `<p style="color:red">Erro ao carregar: ${err.message}</p>`;
             }
         }
 
-        // Executa ao abrir a página
         carregarFinanceiro();
     </script>
 </body>
