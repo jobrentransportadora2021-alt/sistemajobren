@@ -153,7 +153,7 @@
 <script>
     var propostasLocais = [];
 
-    // Cálculo automático de custo
+    // Cálculo automático de custo total em tempo real
     document.addEventListener('input', () => {
         const v1 = parseFloat(document.getElementById('vlr1').value) || 0;
         const v2 = parseFloat(document.getElementById('vlr2').value) || 0;
@@ -163,7 +163,10 @@
 
     async function carregar() {
         const { data, error } = await supabaseClient.from('propostas').select('*').eq('status', 'pendente');
-        if(error) return console.error("Erro ao carregar:", error);
+        if(error) {
+            console.error("Erro ao carregar propostas:", error);
+            return;
+        }
         
         propostasLocais = data;
         const select = document.getElementById('select_proposta');
@@ -188,7 +191,7 @@
             document.getElementById('view_desc').innerText = p.descricao_mercadoria || "Material sem descrição detalhada.";
             document.getElementById('view_teto').innerText = `R$ ${parseFloat(p.valor_sugerido_operacional || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
             
-            // Corrige exibição da foto se houver URL
+            // Exibição da foto baseada na URL do banco
             const imgElement = document.getElementById('view_foto');
             imgElement.src = p.foto_url ? p.foto_url : "https://via.placeholder.com/150?text=Sem+Foto";
         } else {
@@ -198,36 +201,45 @@
 
     async function finalizarOperacao() {
         const idProposta = document.getElementById('select_proposta').value;
-        if(!idProposta) return alert("Selecione uma carga!");
+        if(!idProposta) return alert("Por favor, selecione uma carga antes de finalizar.");
 
         const m1 = document.getElementById('mot1').value;
         const v1 = parseFloat(document.getElementById('vlr1').value) || 0;
         const m2 = document.getElementById('mot2').value || null;
         const v2 = parseFloat(document.getElementById('vlr2').value) || 0;
 
-        if(!m1 || v1 <= 0) return alert("Erro: Motorista de Coleta e Valor são obrigatórios!");
+        // Validação mínima obrigatória
+        if(!m1 || v1 <= 0) return alert("Erro: O Motorista de Coleta e o Valor do Frete são obrigatórios!");
 
-        // CORREÇÃO: Usando 'identificação_id' conforme mapeado no seu banco de dados
-        const { error } = await supabaseClient.from('operacoes').insert([{
-            identificação_id: idProposta, 
+        // Inserção na tabela 'operacoes' usando o nome da coluna corrigido
+        const { error: errorInsert } = await supabaseClient.from('operacoes').insert([{
+            identificacao_id: idProposta, 
             motorista_nome: m1,
             valor_pago_motorista: v1,
             motorista_2_nome: m2,
             valor_pago_motorista_2: v2
         }]);
 
-        if (!error) {
-            // Atualiza status na tabela propostas
-            await supabaseClient.from('propostas').update({ status: 'concluido' }).eq('id', idProposta);
-            alert("✅ Viagem finalizada com sucesso!");
-            location.reload();
+        if (!errorInsert) {
+            // Se gravou a operação, atualiza a proposta para 'concluido'
+            const { error: errorUpdate } = await supabaseClient
+                .from('propostas')
+                .update({ status: 'concluido' })
+                .eq('id', idProposta);
+
+            if(!errorUpdate) {
+                alert("✅ Viagem finalizada com sucesso! Os dados foram enviados ao financeiro.");
+                location.reload();
+            } else {
+                alert("Operação salva, mas houve erro ao atualizar o status da carga.");
+            }
         } else {
-            // Log detalhado para depuração se o erro de RLS persistir
-            console.error("Erro Supabase:", error);
-            alert("Erro ao salvar operação: " + error.message);
+            console.error("Erro Supabase na inserção:", errorInsert);
+            alert("Erro ao salvar operação: " + errorInsert.message);
         }
     }
 
+    // Inicializa a listagem ao carregar a página
     carregar();
 </script>
 </body>
