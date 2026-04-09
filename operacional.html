@@ -1,8 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobren - Painel Operacional</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text-main: #1e293b; --text-sub: #64748b; --success: #10b981; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-main); margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: auto; }
+        .header-dash { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header-dash h1 { font-size: 1.6rem; margin: 0; color: var(--primary); font-weight: 800; }
+        .main-layout { display: grid; grid-template-columns: 1fr 380px; gap: 25px; }
+        .glass-card { background: var(--card); border-radius: 16px; padding: 25px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .section-title { font-size: 0.8rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        select { width: 100%; padding: 14px; border-radius: 12px; border: 2px solid #e2e8f0; font-size: 1rem; background: #fff; margin-bottom: 25px; cursor: pointer; }
+        .carga-detalhes { display: none; background: #f8fafc; border-radius: 14px; padding: 20px; border: 1px solid #e2e8f0; margin-bottom: 25px; }
+        .carga-flex { display: flex; gap: 20px; }
+        .carga-flex img { width: 140px; height: 140px; border-radius: 12px; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; }
+        .info-item { background: white; padding: 10px 15px; border-radius: 10px; border: 1px solid #edf2f7; }
+        .info-item label { font-size: 0.65rem; color: var(--text-sub); font-weight: 700; display: block; }
+        .info-item span { font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
+        .drivers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .driver-card { padding: 20px; border-radius: 14px; border: 2px solid #f1f5f9; background: #fcfcfc; }
+        .driver-card.highlight { border-color: #dbeafe; background: #fff; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 6px; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 0.95rem; box-sizing: border-box; }
+        .total-box { background: var(--primary); color: white; padding: 30px; border-radius: 20px; text-align: center; }
+        .total-box h2 { font-size: 2.2rem; margin: 10px 0; font-weight: 800; }
+        .btn-finish { width: 100%; background: var(--success); color: white; border: none; padding: 20px; border-radius: 14px; font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        .btn-finish:hover { transform: translateY(-3px); filter: brightness(1.1); }
+        .btn-finish:disabled { background: #94a3b8; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-dash">
+        <h1>📦 Jobren Operacional</h1>
+        <div style="font-size: 0.8rem; color: var(--text-sub); text-align: right;">
+            <b>Status:</b> <span style="color: var(--success)">● Conectado</span>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="glass-card">
+            <div class="section-title">1. Seleção de Carga no Pátio</div>
+            <select id="select_proposta" onchange="mostrarDetalhes()">
+                <option value="">Carregando pátio...</option>
+            </select>
+
+            <div id="detalhes_carga" class="carga-detalhes">
+                <div class="carga-flex">
+                    <img id="view_foto" src="" alt="Mercadoria">
+                    <div class="info-grid">
+                        <div class="info-item" style="grid-column: span 2;">
+                            <label>CLIENTE</label>
+                            <span id="view_cliente">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>📍 ORIGEM</label>
+                            <span id="view_origem">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>🏁 DESTINO</label>
+                            <span id="view_destino">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>VENDEDOR</label>
+                            <span id="view_vendedor">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>TETO OPERACIONAL</label>
+                            <span id="view_teto" style="color: #e11d48;">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">2. Atribuição de Motoristas</div>
+            <div class="drivers-grid">
+                <div class="driver-card highlight">
+                    <label style="color: var(--primary); font-size: 0.65rem; font-weight: 800;">COLETA (OBRIGATÓRIO)</label>
+                    <div class="input-group" style="margin-top:10px">
+                        <label>Nome do Motorista</label>
+                        <input type="text" id="mot1" placeholder="Nome completo">
+                    </div>
+                    <div class="input-group">
+                        <label>Valor do Frete R$</label>
+                        <input type="number" id="vlr1" placeholder="0,00" step="0.01">
+                    </div>
+                </div>
+
+                <div class="driver-card">
+                    <label style="color: var(--text-sub); font-size: 0.65rem; font-weight: 800;">MOTORISTA 2 (OPCIONAL)</label>
+                    <div class="input-group" style="margin-top:10px">
+                        <label>Nome do Motorista</label>
+                        <input type="text" id="mot2" placeholder="Nome completo">
+                    </div>
+                    <div class="input-group">
+                        <label>Valor do Frete R$</label>
+                        <input type="number" id="vlr2" placeholder="0,00" step="0.01">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="resumo-footer">
+            <div class="total-box">
+                <span>Custo Direto Motorista</span>
+                <h2 id="total_display">R$ 0,00</h2>
+            </div>
+            <button id="btnFinalizar" class="btn-finish" onclick="finalizarOperacao()">✓ Finalizar Viagem</button>
+            <p style="font-size: 0.7rem; color: var(--text-sub); text-align: center; margin-top: 10px;">Os dados serão enviados automaticamente ao setor financeiro.</p>
+        </div>
+    </div>
+</div>
+
 <script src="config.js"></script>
 <script>
     let propostasLocais = [];
 
-    // Cálculo do total em tempo real
+    // Soma em tempo real
     document.addEventListener('input', () => {
         const v1 = parseFloat(document.getElementById('vlr1').value) || 0;
         const v2 = parseFloat(document.getElementById('vlr2').value) || 0;
@@ -11,13 +133,13 @@
 
     async function carregar() {
         const { data, error } = await supabaseClient.from('propostas').select('*').eq('status', 'pendente');
-        if (error) return console.error("Erro ao carregar:", error);
+        if (error) return console.error(error);
         
         propostasLocais = data;
         const select = document.getElementById('select_proposta');
         select.innerHTML = data.length > 0 ? 
-            '<option value="">Selecione a carga no pátio...</option>' + data.map(p => `<option value="${p.id}">${p.cliente_nome} | ${p.origem || 'Sem Origem'} > ${p.destino || 'Sem Destino'}</option>`).join('') :
-            '<option value="">Não há cargas pendentes.</option>';
+            '<option value="">Selecione a carga no pátio...</option>' + data.map(p => `<option value="${p.id}">${p.cliente_nome} | ${p.origem || 'S/O'} > ${p.destino || 'S/D'}</option>`).join('') :
+            '<option value="">Nenhuma carga pendente.</option>';
     }
 
     function mostrarDetalhes() {
@@ -37,40 +159,49 @@
     }
 
     async function finalizarOperacao() {
+        const btn = document.getElementById('btnFinalizar');
         const idProposta = document.getElementById('select_proposta').value;
         const p = propostasLocais.find(x => x.id == idProposta);
         
         const m1 = document.getElementById('mot1').value;
         const v1 = parseFloat(document.getElementById('vlr1').value) || 0;
-        const m2 = document.getElementById('mot2').value || "";
-        const v2 = parseFloat(document.getElementById('vlr2').value) || 0;
 
-        // Validação de segurança para evitar o erro "null value in column origem"
-        if (!idProposta) return alert("Selecione uma carga primeiro!");
-        if (!p.origem || !p.destino) return alert("Esta carga não possui Origem/Destino cadastrados no Comercial. Corrija antes de finalizar.");
-        if (!m1 || v1 <= 0) return alert("Informe o Motorista e o Valor do Frete!");
+        if(!idProposta || !m1 || v1 <= 0) return alert("Erro: Selecione a carga e informe o motorista principal.");
+        if(!p.origem || !p.destino) return alert("Erro: Esta carga não possui origem/destino no comercial.");
 
-        const { error: errorInsert } = await supabaseClient.from('operacoes').insert([{
-            identificação_id: idProposta, 
-            origem: p.origem,
-            destino: p.destino,
-            motorista_nome: m1,
-            valor_pago_motorista: v1,
-            motorista_2_nome: m2,
-            valor_pago_motorista_2: v2,
-            status_viagem: 'em_transito'
-        }]);
+        btn.disabled = true;
+        btn.innerHTML = "Processando...";
 
-        if (!errorInsert) {
-            // Se salvou a operação, marca a proposta como concluída
+        try {
+            // Salva na tabela 'operacoes' usando a coluna identificacao_id (correta conforme banco)
+            const { error: errorInsert } = await supabaseClient.from('operacoes').insert([{
+                identificacao_id: idProposta,
+                origem: p.origem,
+                destino: p.destino,
+                motorista_nome: m1,
+                valor_pago_motorista: v1,
+                motorista_2_nome: document.getElementById('mot2').value || "",
+                valor_pago_motorista_2: parseFloat(document.getElementById('vlr2').value) || 0,
+                status_viagem: 'em_transito'
+            }]);
+
+            if (errorInsert) throw errorInsert;
+
+            // Atualiza status da proposta original para não aparecer mais no pátio
             await supabaseClient.from('propostas').update({ status: 'concluido' }).eq('id', idProposta);
-            alert("✅ Viagem registrada! Dados enviados ao financeiro.");
+
+            alert("✅ Viagem enviada ao financeiro!");
             location.reload();
-        } else {
-            console.error("Erro técnico:", errorInsert);
-            alert("Erro no banco: " + errorInsert.message);
+
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao salvar operação: " + err.message);
+            btn.disabled = false;
+            btn.innerHTML = "✓ Finalizar Viagem";
         }
     }
 
     carregar();
 </script>
+</body>
+</html>
