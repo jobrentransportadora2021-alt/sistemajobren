@@ -6,28 +6,19 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --accent: #6366f1; }
+        :root { --primary: #2563eb; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
         .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 100%; max-width: 500px; border: 1px solid #e2e8f0; }
         h2 { color: #1e293b; text-align: center; margin-bottom: 25px; font-weight: 700; }
-        
-        .upload-area { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; margin-bottom: 20px; background: #fdfdfd; transition: 0.2s; }
-        .upload-area:hover { border-color: var(--primary); background: #f0f7ff; }
+        .upload-area { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; margin-bottom: 20px; background: #fdfdfd; }
         #preview { width: 100%; max-height: 150px; object-fit: contain; border-radius: 8px; display: none; margin-top: 10px; }
-        
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .full { grid-column: span 2; }
-        
         label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 5px; color: #475569; text-transform: uppercase; }
         input, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; font-family: inherit; font-size: 0.95rem; margin-bottom: 15px; }
         textarea { resize: none; height: 80px; }
-        input:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-
         .operacional-box { background: #fff7ed; border: 1px solid #fed7aa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .operacional-box label { color: #9a3412; }
-
         button { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #1d4ed8; transform: translateY(-1px); }
         button:disabled { background: #94a3b8; cursor: not-allowed; }
     </style>
 </head>
@@ -46,40 +37,36 @@
                 <label>Vendedor(a)</label>
                 <input type="text" id="vendedor" placeholder="Nome do responsável">
             </div>
-
             <div class="full">
                 <label>Cliente / Razão Social</label>
                 <input type="text" id="cliente" placeholder="Ex: Lorenzetti S.A.">
             </div>
-
             <div class="full">
                 <label>Descrição da Carga</label>
                 <textarea id="descricao" placeholder="Ex: 20 pallets de chuveiros..."></textarea>
             </div>
-
             <div>
                 <label>Valor Mercadoria</label>
-                <input type="number" id="vlr_merca" placeholder="0.00" step="0.01">
+                <input type="number" id="vlr_merca" placeholder="0.00">
             </div>
-
             <div>
                 <label>Frete Cliente</label>
-                <input type="number" id="vlr_frete" placeholder="0.00" step="0.01">
+                <input type="number" id="vlr_frete" placeholder="0.00">
             </div>
         </div>
 
         <div class="operacional-box">
-            <label>💰 Sugestão p/ Gasto Operacional</label>
-            <input type="number" id="vlr_sugerido_operacional" placeholder="Limite para motoristas" step="0.01">
-            <small style="color: #c2410c; font-size: 0.75rem;">Valor sugerido para o frete dos motoristas.</small>
+            <label style="color: #9a3412;">💰 Sugestão p/ Gasto Operacional</label>
+            <input type="number" id="vlr_sugerido_operacional" placeholder="Limite p/ motoristas">
         </div>
         
         <button id="btnSalvar" onclick="salvarProposta()">Enviar para Operacional 🚀</button>
-        <p style="text-align:center;"><a href="#" onclick="logout()" style="color:#94a3b8; text-decoration:none; font-size:0.8rem;">Sair do Sistema</a></p>
+        <p style="text-align:center;"><a href="#" onclick="logout()" style="color:#94a3b8; text-decoration:none; font-size:0.8rem;">Sair</a></p>
     </div>
 
     <script src="config.js"></script>
     <script>
+        // Função para mostrar a foto na tela
         function previewImage(input) {
             const preview = document.getElementById('preview');
             const label = document.getElementById('upload-label');
@@ -94,147 +81,57 @@
             }
         }
 
+        // --- AQUI ENTRA O CÓDIGO QUE VOCÊ ENVIOU ---
         async function salvarProposta() {
             const btn = document.getElementById('btnSalvar');
             const file = document.getElementById('foto').files[0];
             let publicUrl = "";
 
+            const v_merca = parseFloat(document.getElementById('vlr_merca').value) || 0;
+            const v_frete = parseFloat(document.getElementById('vlr_frete').value) || 0;
+            const v_sugestao = parseFloat(document.getElementById('vlr_sugerido_operacional').value) || 0;
+
             btn.disabled = true;
             btn.innerHTML = "Processando...";
 
             try {
-                // 1. Upload da Foto (Bucket 'mercadorias')
                 if (file) {
-                    const fileName = `${Date.now()}_${file.name}`;
+                    const fileName = `${Date.now()}_carga.jpg`;
                     const { data: uploadData, error: uploadError } = await supabaseClient.storage
                         .from('mercadorias')
                         .upload(fileName, file);
 
-                    if (uploadError) throw new Error("Erro no Storage: " + uploadError.message);
+                    if (uploadError) throw new Error("Erro Foto: " + uploadError.message);
 
                     const { data: urlData } = supabaseClient.storage
                         .from('mercadorias')
                         .getPublicUrl(fileName);
-                    publicUrl = urlData.publicUrl;<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Jobren - Comercial Pro</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --accent: #6366f1; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
-        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 100%; max-width: 500px; border: 1px solid #e2e8f0; }
-        h2 { color: #1e293b; text-align: center; margin-bottom: 25px; font-weight: 700; }
-        
-        .upload-area { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; margin-bottom: 20px; background: #fdfdfd; }
-        #preview { width: 100%; max-height: 150px; object-fit: contain; border-radius: 8px; display: none; margin-top: 10px; }
-        
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .full { grid-column: span 2; }
-        
-        label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 5px; color: #475569; text-transform: uppercase; }
-        input, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; font-family: inherit; font-size: 0.95rem; margin-bottom: 15px; }
-        textarea { resize: none; height: 80px; }
-        input:focus, textarea:focus { outline: none; border-color: var(--primary); ring: 2px var(--primary); }
-
-        .operacional-box { background: #fff7ed; border: 1px solid #fed7aa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .operacional-box label { color: #9a3412; }
-
-        button { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #1d4ed8; transform: translateY(-1px); }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>🛒 Registro Comercial</h2>
-        
-        <div class="upload-area" onclick="document.getElementById('foto').click()">
-            <span id="upload-label">📸 Clique para Foto da Mercadoria</span>
-            <input type="file" id="foto" accept="image/*" style="display:none" onchange="previewImage(this)">
-            <img id="preview">
-        </div>
-
-        <div class="grid">
-            <div class="full">
-                <label>Vendedor(a)</label>
-                <input type="text" id="vendedor" placeholder="Nome do responsável pela venda">
-            </div>
-
-            <div class="full">
-                <label>Cliente / Razão Social</label>
-                <input type="text" id="cliente" placeholder="Ex: Lorenzetti S.A.">
-            </div>
-
-            <div class="full">
-                <label>O que vai ser transportado?</label>
-                <textarea id="descricao" placeholder="Ex: 20 pallets de chuveiros, peso 400kg..."></textarea>
-            </div>
-
-            <div>
-                <label>Valor Mercadoria</label>
-                <input type="number" id="vlr_merca" placeholder="R$ 0,00">
-            </div>
-
-            <div>
-                <label>Frete Cliente</label>
-                <input type="number" id="vlr_frete" placeholder="R$ 0,00">
-            </div>
-        </div>
-
-        <div class="operacional-box">
-            <label>💰 Sugestão p/ Gasto Operacional</label>
-            <input type="number" id="vlr_sugerido_operacional" placeholder="Máximo para pagar motoristas">
-            <small style="color: #c2410c; font-size: 0.75rem;">Valor limite sugerido para o frete dos motoristas.</small>
-        </div>
-        
-        <button onclick="salvarProposta()">Enviar para Operacional 🚀</button>
-        <p style="text-align:center;"><a href="#" onclick="logout()" style="color:#94a3b8; text-decoration:none; font-size:0.8rem;">Sair do Sistema</a></p>
-    </div>
-
-    <script src="config.js"></script>
-    <script>
-        function previewImage(input) {
-            const preview = document.getElementById('preview');
-            const label = document.getElementById('upload-label');
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    label.style.display = 'none';
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        async function salvarProposta() {
-            const file = document.getElementById('foto').files[0];
-            let publicUrl = "";
-
-            if (file) {
-                const fileName = `${Date.now()}_${file.name}`;
-                const { data: uploadData } = await supabaseClient.storage.from('mercadorias').upload(fileName, file);
-                if (uploadData) {
-                    const { data: urlData } = supabaseClient.storage.from('mercadorias').getPublicUrl(fileName);
                     publicUrl = urlData.publicUrl;
                 }
+
+                const { error: dbError } = await supabaseClient.from('propostas').insert([{
+                    vendedor_nome: document.getElementById('vendedor').value || "Não informado",
+                    cliente_nome: document.getElementById('cliente').value || "Cliente Avulso",
+                    descricao_mercadoria: document.getElementById('descricao').value || "",
+                    valor_mercadoria: v_merca,
+                    valor_frete_cliente: v_frete,
+                    valor_sugerido_operacional: v_sugestao,
+                    foto_url: publicUrl,
+                    status: 'pendente'
+                }]);
+
+                if (dbError) throw dbError;
+
+                alert("Carga enviada com sucesso!");
+                location.reload();
+
+            } catch (err) {
+                alert("Erro no envio: " + err.message);
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "Enviar para Operacional 🚀";
             }
-
-            const { error } = await supabaseClient.from('propostas').insert([{
-                vendedor_nome: document.getElementById('vendedor').value,
-                cliente_nome: document.getElementById('cliente').value,
-                descricao_mercadoria: document.getElementById('descricao').value,
-                valor_mercadoria: document.getElementById('vlr_merca').value,
-                valor_frete_cliente: document.getElementById('vlr_frete').value,
-                valor_sugerido_operacional: document.getElementById('vlr_sugerido_operacional').value,
-                foto_url: publicUrl,
-                status: 'pendente'
-            }]);
-
-            if (error) alert("Erro: " + error.message);
-            else { alert("Carga enviada com sucesso!"); location.reload(); }
         }
 
         function logout() { localStorage.clear(); window.location.href = 'index.html'; }
