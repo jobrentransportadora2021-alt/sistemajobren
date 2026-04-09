@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Painel Logística</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .modulo { border: 1px solid #ccc; padding: 15px; margin: 10px; border-radius: 5px; display: none; }
+        .visivel { display: block; }
+        h3 { margin-top: 0; color: #2563eb; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>Sistema Integrado - <span id="user-role-display"></span></h2>
+
+    <div id="comercial" class="modulo">
+        <h3>🛒 Comercial</h3>
+        <label>Cliente:</label> <input type="text" id="cliente">
+        <label>Valor Mercadoria:</label> <input type="number" id="vlr_merca">
+        <label>Valor Frete (Cliente):</label> <input type="number" id="vlr_frete">
+        <button onclick="salvarProposta()">Gerar Proposta</button>
+    </div>
+
+    <div id="operacional" class="modulo">
+        <h3>🚚 Operacional</h3>
+        <label>Origem:</label> <input type="text" id="origem">
+        <label>Destino:</label> <input type="text" id="destino">
+        <label>Base / Rota Dois:</label> <input type="text" id="rota2">
+        <label>Valor Motorista:</label> <input type="number" id="vlr_motorista">
+        <button onclick="iniciarViagem()">Iniciar Viagem</button>
+    </div>
+
+    <div id="financeiro" class="modulo">
+        <h3>💰 Financeiro</h3>
+        <div id="resumo-lucro">
+            <p>Aguardando fechamento de propostas...</p>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const role = localStorage.getItem('user_role');
+        document.getElementById('user-role-display').innerText = role.toUpperCase();
+
+        // Lógica de Visibilidade
+        if (role === 'comercial' || role === 'admin') document.getElementById('comercial').classList.add('visivel');
+        if (role === 'operacional' || role === 'admin') document.getElementById('operacional').classList.add('visivel');
+        if (role === 'financeiro' || role === 'admin') document.getElementById('financeiro').classList.add('visivel');
+
+        async function salvarProposta() {
+            const { error } = await supabase.from('propostas').insert([{
+                cliente_nome: document.getElementById('cliente').value,
+                valor_mercadoria: document.getElementById('vlr_merca').value,
+                valor_frete_cliente: document.getElementById('vlr_frete').value
+            }]);
+            if (!error) alert("Proposta salva!");
+        }
+
+        // Se for Financeiro, carrega a VIEW que criamos no SQL
+        if (role === 'financeiro' || role === 'admin') {
+            carregarFinanceiro();
+        }
+
+        async function carregarFinanceiro() {
+            const { data } = await supabase.from('financeiro_consolidado').select('*');
+            if (data) {
+                const html = data.map(item => `
+                    <div style="border-bottom: 1px solid #eee; padding: 5px;">
+                        <b>${item.cliente_nome}</b> | Receita: R$${item.receita} | Custo: R$${item.custo} | 
+                        <span style="color: green">Lucro: R$${item.lucro_operacional}</span>
+                    </div>
+                `).join('');
+                document.getElementById('resumo-lucro').innerHTML = html;
+            }
+        }
+    </script>
+</body>
+</html>
