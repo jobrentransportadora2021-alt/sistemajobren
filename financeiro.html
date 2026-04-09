@@ -1,32 +1,41 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Jobren - Financeiro</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { font-family: sans-serif; background: #f1f5f9; padding: 20px; }
-        .item { background: white; padding: 15px; border-radius: 8px; border-left: 6px solid #2563eb; margin-bottom: 10px; }
-        .lucro { color: #166534; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <h2>💰 Financeiro - Resumo de Lucros</h2>
-    <div id="lista"></div>
+async function carregar() {
+    const listaDiv = document.getElementById('lista');
+    
+    // 1. Buscando os dados da tabela operacional (ou a consolidada)
+    // Certifique-se de que o nome da tabela no Supabase é exatamente este
+    const { data, error } = await supabaseClient
+        .from('financeiro_consolidado') 
+        .select('*');
 
-    <script src="config.js"></script>
-    <script>
-        async function carregar() {
-            const { data } = await supabaseClient.from('financeiro_consolidado').select('*');
-            document.getElementById('lista').innerHTML = data.map(i => `
-                <div class="item">
-                    <strong>Cliente: ${i.cliente_nome}</strong><br>
-                    Receita: R$ ${i.receita} | Custos: R$ ${i.custo_total}<br>
-                    <span class="lucro">LUCRO: R$ ${i.lucro_operacional}</span>
-                </div>
-            `).join('');
-        }
-        carregar();
-    </script>
-</body>
-</html>
+    // 2. Verificação de Erros de Conexão ou Permissão (RLS)
+    if (error) {
+        console.error("Erro no Supabase:", error.message);
+        listaDiv.innerHTML = `<p style="color:red">Erro ao carregar: ${error.message}</p>`;
+        return;
+    }
+
+    // 3. Verificação se a tabela está vazia
+    if (!data || data.length === 0) {
+        listaDiv.innerHTML = "<p>Nenhum dado operacional enviado para o financeiro ainda.</p>";
+        return;
+    }
+
+    // 4. Renderização dos dados
+    listaDiv.innerHTML = data.map(i => {
+        // Garantindo que os valores são números para evitar erros de exibição
+        const receita = Number(i.receita || 0);
+        const custos = Number(i.custo_total || 0);
+        const lucro = Number(i.lucro_operacional || (receita - custos));
+
+        return `
+            <div class="item">
+                <strong>👤 Cliente: ${i.cliente_nome || 'Não identificado'}</strong><br>
+                <span>📈 Receita: R$ ${receita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span> | 
+                <span>📉 Custos: R$ ${custos.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span><br>
+                <span class="lucro">💰 LUCRO: R$ ${lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+carregar();
