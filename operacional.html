@@ -15,13 +15,11 @@
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-main); margin: 0; padding: 20px; }
         .container { max-width: 1100px; margin: auto; }
         
-        /* Cabeçalho */
         .header-dash { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .header-dash h1 { font-size: 1.6rem; margin: 0; color: var(--primary); font-weight: 800; }
         
         .main-layout { display: grid; grid-template-columns: 1fr 380px; gap: 25px; }
 
-        /* Card de Gestão */
         .glass-card { background: var(--card); border-radius: 16px; padding: 25px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
         
         .section-title { font-size: 0.8rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
@@ -31,7 +29,6 @@
             font-size: 1rem; background: #fff; margin-bottom: 25px; cursor: pointer;
         }
 
-        /* Card de Detalhes da Carga */
         .carga-detalhes { display: none; background: #f8fafc; border-radius: 14px; padding: 20px; border: 1px solid #e2e8f0; margin-bottom: 25px; }
         .carga-flex { display: flex; gap: 20px; }
         .carga-flex img { width: 140px; height: 140px; border-radius: 12px; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -41,7 +38,6 @@
         .info-item label { font-size: 0.65rem; color: var(--text-sub); font-weight: 700; display: block; }
         .info-item span { font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
 
-        /* Inputs de Motoristas */
         .drivers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .driver-card { padding: 20px; border-radius: 14px; border: 2px solid #f1f5f9; background: #fcfcfc; }
         .driver-card.highlight { border-color: #dbeafe; background: #fff; }
@@ -54,7 +50,6 @@
         }
         input:focus { border-color: var(--primary); outline: none; background: #fff; }
 
-        /* Barra Lateral de Resumo */
         .resumo-footer { height: fit-content; position: sticky; top: 20px; }
         .total-box { background: var(--primary); color: white; padding: 30px; border-radius: 20px; text-align: center; }
         .total-box span { font-size: 0.9rem; opacity: 0.9; }
@@ -156,7 +151,6 @@
 
 <script src="config.js"></script>
 <script>
-    // Uso de var para evitar erro de redeclaração se o script rodar 2x
     var propostasLocais = [];
 
     // Cálculo automático de custo
@@ -169,16 +163,16 @@
 
     async function carregar() {
         const { data, error } = await supabaseClient.from('propostas').select('*').eq('status', 'pendente');
-        if(error) return console.error(error);
+        if(error) return console.error("Erro ao carregar:", error);
         
         propostasLocais = data;
         const select = document.getElementById('select_proposta');
         
-        if (data.length > 0) {
+        if (data && data.length > 0) {
             select.innerHTML = '<option value="">Selecione uma carga no pátio...</option>' + 
                 data.map(p => `<option value="${p.id}">${p.cliente_nome} | ${p.vendedor_nome}</option>`).join('');
         } else {
-            select.innerHTML = '<option>Não há cargas pendentes.</option>';
+            select.innerHTML = '<option value="">Não há cargas pendentes.</option>';
         }
     }
 
@@ -194,13 +188,9 @@
             document.getElementById('view_desc').innerText = p.descricao_mercadoria || "Material sem descrição detalhada.";
             document.getElementById('view_teto').innerText = `R$ ${parseFloat(p.valor_sugerido_operacional || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
             
-            // Tratamento da imagem do comercial
+            // Corrige exibição da foto se houver URL
             const imgElement = document.getElementById('view_foto');
-            if(p.foto_url) {
-                imgElement.src = p.foto_url;
-            } else {
-                imgElement.src = "https://via.placeholder.com/150?text=Sem+Foto";
-            }
+            imgElement.src = p.foto_url ? p.foto_url : "https://via.placeholder.com/150?text=Sem+Foto";
         } else {
             det.style.display = 'none';
         }
@@ -212,22 +202,28 @@
 
         const m1 = document.getElementById('mot1').value;
         const v1 = parseFloat(document.getElementById('vlr1').value) || 0;
+        const m2 = document.getElementById('mot2').value || null;
+        const v2 = parseFloat(document.getElementById('vlr2').value) || 0;
 
         if(!m1 || v1 <= 0) return alert("Erro: Motorista de Coleta e Valor são obrigatórios!");
 
+        // CORREÇÃO: Usando 'identificação_id' conforme mapeado no seu banco de dados
         const { error } = await supabaseClient.from('operacoes').insert([{
-            proposta_id: idProposta,
+            identificação_id: idProposta, 
             motorista_nome: m1,
             valor_pago_motorista: v1,
-            motorista_2_nome: document.getElementById('mot2').value || null,
-            valor_pago_motorista_2: parseFloat(document.getElementById('vlr2').value) || 0
+            motorista_2_nome: m2,
+            valor_pago_motorista_2: v2
         }]);
 
         if (!error) {
+            // Atualiza status na tabela propostas
             await supabaseClient.from('propostas').update({ status: 'concluido' }).eq('id', idProposta);
-            alert("✅ Operação Finalizada com Sucesso!");
+            alert("✅ Viagem finalizada com sucesso!");
             location.reload();
         } else {
+            // Log detalhado para depuração se o erro de RLS persistir
+            console.error("Erro Supabase:", error);
             alert("Erro ao salvar operação: " + error.message);
         }
     }
