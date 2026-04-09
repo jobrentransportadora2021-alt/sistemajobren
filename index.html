@@ -6,98 +6,52 @@
     <title>Jobren Logística - Acesso</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 350px; }
-        .login-card h2 { margin-bottom: 1.5rem; text-align: center; font-size: 1.5rem; color: var(--primary); }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; }
-        input { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 0.75rem; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 1rem; margin-top: 1rem; }
-        button:disabled { background: #94a3b8; }
-        .loader { display: none; text-align: center; margin-top: 10px; font-size: 0.8rem; color: #64748b; }
+        :root { --primary: #2563eb; --bg: #f8fafc; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 350px; }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
+        input { width: 100%; padding: 0.8rem; border: 1px solid #e2e8f0; border-radius: 6px; box-sizing: border-box; margin-bottom: 1rem; }
+        button { width: 100%; padding: 0.8rem; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .loader { display: none; text-align: center; font-size: 0.8rem; color: #64748b; margin-top: 10px; }
     </style>
 </head>
 <body>
-
     <div class="login-card">
         <h2>Jobren Logística</h2>
-        
-        <div class="form-group">
-            <label for="email">E-mail Corporativo</label>
-            <input type="email" id="email" placeholder="nome@jobren.com.br">
-        </div>
-
-        <div class="form-group">
-            <label for="password">Senha</label>
-            <input type="password" id="password" placeholder="••••••••">
-        </div>
-
+        <label>E-mail</label>
+        <input type="email" id="email" placeholder="seu@email.com">
+        <label>Senha</label>
+        <input type="password" id="password" placeholder="••••••••">
         <button id="btnLogin">Entrar no Sistema</button>
-        <div id="loader" class="loader">Validando acesso e cargo...</div>
+        <div id="loader" class="loader">Verificando cargo...</div>
     </div>
 
     <script src="config.js"></script>
-
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const btnLogin = document.getElementById('btnLogin');
+        document.getElementById('btnLogin').addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
             const loader = document.getElementById('loader');
 
-            btnLogin.addEventListener('click', async () => {
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('password').value;
+            if (!email || !password) return alert("Preencha tudo!");
 
-                if (!email || !password) {
-                    alert("Preencha todos os campos.");
-                    return;
-                }
+            loader.style.display = 'block';
+            
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-                btnLogin.disabled = true;
-                loader.style.display = 'block';
-
-                try {
-                    // 1. Autenticação
-                    const { data, error } = await supabaseClient.auth.signInWithPassword({
-                        email: email,
-                        password: password
-                    });
-
-                    if (error) throw error;
-
-                    // 2. Busca o cargo (funcao) na tabela perfis
-                    const { data: perfil, error: perfilError } = await supabaseClient
-                        .from('perfis')
-                        .select('funcao')
-                        .eq('id', data.user.id)
-                        .single();
-
-                    if (perfilError || !perfil) {
-                        alert("Usuário sem cargo definido. Fale com o admin.");
-                        return;
-                    }
-
-                    // 3. Salva a sessão localmente
-                    localStorage.setItem('user_role', perfil.funcao);
-                    localStorage.setItem('user_id', data.user.id);
-
-                    // 4. REDIRECIONAMENTO POR PÁGINA FÍSICA
-                    const destino = {
-                        'admin': 'admin.html',
-                        'comercial': 'comercial.html',
-                        'operacional': 'operacional.html',
-                        'financeiro': 'financeiro.html'
-                    };
-
-                    window.location.href = destino[perfil.funcao] || 'index.html';
-
-                } catch (err) {
-                    alert("Erro: " + err.message);
-                } finally {
-                    btnLogin.disabled = false;
-                    loader.style.display = 'none';
-                }
-            });
+            if (error) {
+                alert("Erro: " + error.message);
+                loader.style.display = 'none';
+            } else {
+                const { data: perfil } = await supabaseClient.from('perfis').select('funcao').eq('id', data.user.id).single();
+                
+                localStorage.setItem('user_role', perfil.funcao);
+                
+                // Redirecionamento automático
+                const paginas = { 'comercial': 'comercial.html', 'operacional': 'operacional.html', 'financeiro': 'financeiro.html', 'admin': 'financeiro.html' };
+                window.location.href = paginas[perfil.funcao] || 'index.html';
+            }
         });
     </script>
 </body>
