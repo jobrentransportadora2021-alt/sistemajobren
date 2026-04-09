@@ -1,27 +1,124 @@
-async function carregar() {
-    // Agora buscamos também as novas informações
-    const { data } = await supabaseClient
-        .from('propostas')
-        .select('id, cliente_nome, valor_frete_cliente, vendedor_nome, descricao_mercadoria, valor_sugerido_operacional, foto_url')
-        .eq('status', 'pendente');
-
-    const select = document.getElementById('select_proposta');
-    
-    if (data && data.length > 0) {
-        select.innerHTML = data.map(p => `
-            <option value="${p.id}">
-                ${p.cliente_nome} | Sugestão: R$ ${p.valor_sugerido_operacional} (${p.vendedor_nome})
-            </option>
-        `).join('');
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Jobren - Operacional Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --success: #059669; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
         
-        // Adicione um evento para mostrar os detalhes quando trocar a carga selecionada
-        select.onchange = () => {
-            const selecionada = data.find(x => x.id == select.value);
-            console.log("Detalhes da carga:", selecionada.descricao_mercadoria);
-            // Aqui você pode colocar um alert ou preencher um campo de texto com a descrição
-        };
-    } else {
-        select.innerHTML = '<option>Nenhuma carga pendente...</option>';
-    }
-}
-carregar();
+        /* Card de Detalhes da Carga */
+        .info-card { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 20px; margin-bottom: 20px; display: none; grid-template-columns: 150px 1fr; gap: 20px; }
+        .info-card img { width: 150px; height: 150px; object-fit: cover; border-radius: 8px; border: 2px solid white; }
+        .info-text h3 { margin: 0; color: #1e40af; font-size: 1.1rem; }
+        .info-text p { margin: 5px 0; font-size: 0.9rem; color: #1e293b; }
+
+        .main-card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        select { width: 100%; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 1rem; border: 1px solid #cbd5e1; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .driver-box { background: #f1f5f9; padding: 15px; border-radius: 10px; }
+        input { width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #cbd5e1; box-sizing: border-box; }
+        
+        .btn-finish { width: 100%; background: var(--success); color: white; padding: 16px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🚚 Operacional - Gestão de Viagem</h2>
+
+        <div class="main-card">
+            <label><b>Escolha a Carga do Comercial:</b></label>
+            <select id="select_proposta" onchange="mostrarDetalhes()">
+                <option value="">Carregando propostas...</option>
+            </select>
+
+            <div id="detalhes_carga" class="info-card">
+                <img id="view_foto" src="" alt="Foto da carga">
+                <div class="info-text">
+                    <h3 id="view_cliente">Cliente</h3>
+                    <p><b>Vendedor:</b> <span id="view_vendedor"></span></p>
+                    <p><b>O que levar:</b> <span id="view_desc"></span></p>
+                    <p><b>Teto de Gasto:</b> <span style="color:red; font-weight:bold" id="view_teto"></span></p>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="driver-box">
+                    <label>Motorista 1 (Coleta)</label>
+                    <input type="text" id="mot1" placeholder="Nome">
+                    <input type="number" id="vlr1" placeholder="Valor R$">
+                </div>
+                <div class="driver-box">
+                    <label>Motorista 2 (Entrega)</label>
+                    <input type="text" id="mot2" placeholder="Nome">
+                    <input type="number" id="vlr2" placeholder="Valor R$">
+                </div>
+            </div>
+
+            <button class="btn-finish" onclick="finalizarOperacao()">Finalizar e Mandar para Financeiro</button>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let propostasAtivas = [];
+
+        async function carregar() {
+            const { data } = await supabaseClient.from('propostas').select('*').eq('status', 'pendente');
+            propostasAtivas = data;
+            const select = document.getElementById('select_proposta');
+            
+            if (data.length > 0) {
+                select.innerHTML = '<option value="">Selecione uma carga...</option>' + 
+                    data.map(p => `<option value="${p.id}">${p.cliente_nome}</option>`).join('');
+            } else {
+                select.innerHTML = '<option>Nenhuma carga disponível</option>';
+            }
+        }
+
+        function mostrarDetalhes() {
+            const id = document.getElementById('select_proposta').value;
+            const det = document.getElementById('detalhes_carga');
+            const p = propostasAtivas.find(x => x.id == id);
+
+            if (p) {
+                det.style.display = 'grid';
+                document.getElementById('view_cliente').innerText = p.cliente_nome;
+                document.getElementById('view_vendedor').innerText = p.vendedor_nome || "Não informado";
+                document.getElementById('view_desc').innerText = p.descricao_mercadoria || "Sem descrição";
+                document.getElementById('view_teto').innerText = "R$ " + (p.valor_sugerido_operacional || 0);
+                document.getElementById('view_foto').src = p.foto_url || "https://via.placeholder.com/150?text=Sem+Foto";
+            } else {
+                det.style.display = 'none';
+            }
+        }
+
+        async function finalizarOperacao() {
+            const idProposta = document.getElementById('select_proposta').value;
+            if(!idProposta) return alert("Selecione uma carga!");
+
+            const { error } = await supabaseClient.from('operacoes').insert([{
+                proposta_id: idProposta,
+                motorista_nome: document.getElementById('mot1').value,
+                valor_pago_motorista: document.getElementById('vlr1').value,
+                motorista_2_nome: document.getElementById('mot2').value,
+                valor_pago_motorista_2: document.getElementById('vlr2').value
+            }]);
+
+            if (!error) {
+                await supabaseClient.from('propostas').update({ status: 'concluido' }).eq('id', idProposta);
+                alert("Operação finalizada!");
+                location.reload();
+            } else {
+                alert("Erro: " + error.message);
+            }
+        }
+
+        carregar();
+    </script>
+</body>
+</html>
