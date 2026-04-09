@@ -43,4 +43,196 @@
 
         /* Inputs de Motoristas */
         .drivers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .driver
+        .driver-card { padding: 20px; border-radius: 14px; border: 2px solid #f1f5f9; background: #fcfcfc; }
+        .driver-card.highlight { border-color: #dbeafe; background: #fff; }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 0.75rem; font-weight: 600; margin-bottom: 6px; }
+        input { 
+            width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; 
+            font-size: 0.95rem; box-sizing: border-box; transition: 0.2s;
+        }
+        input:focus { border-color: var(--primary); outline: none; background: #fff; }
+
+        /* Barra Lateral de Resumo */
+        .resumo-footer { height: fit-content; position: sticky; top: 20px; }
+        .total-box { background: var(--primary); color: white; padding: 30px; border-radius: 20px; text-align: center; }
+        .total-box span { font-size: 0.9rem; opacity: 0.9; }
+        .total-box h2 { font-size: 2.2rem; margin: 10px 0; font-weight: 800; }
+
+        .btn-finish { 
+            width: 100%; background: var(--success); color: white; border: none; padding: 20px; 
+            border-radius: 14px; font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 20px;
+            transition: 0.3s; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
+        }
+        .btn-finish:hover { transform: translateY(-3px); filter: brightness(1.1); }
+
+        @media (max-width: 900px) { .main-layout { grid-template-columns: 1fr; } .drivers-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-dash">
+        <h1>📦 Jobren Operacional</h1>
+        <div style="font-size: 0.8rem; color: var(--text-sub); text-align: right;">
+            <b>Status:</b> <span style="color: var(--success)">● Conectado</span><br>
+            São Paulo, SP
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="glass-card">
+            <div class="section-title">1. Seleção de Carga</div>
+            <select id="select_proposta" onchange="mostrarDetalhes()">
+                <option value="">Aguardando carregamento...</option>
+            </select>
+
+            <div id="detalhes_carga" class="carga-detalhes">
+                <div class="carga-flex">
+                    <img id="view_foto" src="https://via.placeholder.com/150?text=Sem+Foto" alt="Mercadoria">
+                    <div class="info-grid">
+                        <div class="info-item" style="grid-column: span 2;">
+                            <label>CLIENTE / RAZÃO SOCIAL</label>
+                            <span id="view_cliente">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>VENDEDOR</label>
+                            <span id="view_vendedor">-</span>
+                        </div>
+                        <div class="info-item">
+                            <label>TETO OPERACIONAL</label>
+                            <span id="view_teto" style="color: #e11d48;">R$ 0,00</span>
+                        </div>
+                        <div class="info-item" style="grid-column: span 2;">
+                            <label>DETALHES DA MERCADORIA</label>
+                            <span id="view_desc" style="font-weight: 400; line-height: 1.4;">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title" style="margin-top: 20px;">2. Atribuição de Motoristas</div>
+            <div class="drivers-grid">
+                <div class="driver-card highlight">
+                    <label style="color: var(--primary); font-size: 0.65rem; font-weight: 800; letter-spacing: 1px;">COLETA (OBRIGATÓRIO)</label>
+                    <div class="input-group" style="margin-top:10px">
+                        <label>Nome do Motorista</label>
+                        <input type="text" id="mot1" placeholder="Ex: João Silva">
+                    </div>
+                    <div class="input-group">
+                        <label>Valor do Frete R$</label>
+                        <input type="number" id="vlr1" placeholder="0,00" step="0.01">
+                    </div>
+                </div>
+
+                <div class="driver-card">
+                    <label style="color: var(--text-sub); font-size: 0.65rem; font-weight: 800; letter-spacing: 1px;">BASE / ENTREGA (OPCIONAL)</label>
+                    <div class="input-group" style="margin-top:10px">
+                        <label>Nome do Motorista</label>
+                        <input type="text" id="mot2" placeholder="Ex: Ricardo Souza">
+                    </div>
+                    <div class="input-group">
+                        <label>Valor do Frete R$</label>
+                        <input type="number" id="vlr2" placeholder="0,00" step="0.01">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="resumo-footer">
+            <div class="total-box">
+                <span>Total da Operação</span>
+                <h2 id="total_operacao">R$ 0,00</h2>
+                <p style="font-size: 0.7rem; opacity: 0.8; margin: 0;">Custo direto motorista</p>
+            </div>
+            <button class="btn-finish" onclick="finalizarOperacao()">✓ Finalizar Viagem</button>
+            <p style="text-align: center; font-size: 0.75rem; color: var(--text-sub); margin-top: 15px;">
+                Os dados serão enviados automaticamente ao setor financeiro.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+    // Uso de var para evitar erro de redeclaração se o script rodar 2x
+    var propostasLocais = [];
+
+    // Cálculo automático de custo
+    document.addEventListener('input', () => {
+        const v1 = parseFloat(document.getElementById('vlr1').value) || 0;
+        const v2 = parseFloat(document.getElementById('vlr2').value) || 0;
+        const total = v1 + v2;
+        document.getElementById('total_operacao').innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    });
+
+    async function carregar() {
+        const { data, error } = await supabaseClient.from('propostas').select('*').eq('status', 'pendente');
+        if(error) return console.error(error);
+        
+        propostasLocais = data;
+        const select = document.getElementById('select_proposta');
+        
+        if (data.length > 0) {
+            select.innerHTML = '<option value="">Selecione uma carga no pátio...</option>' + 
+                data.map(p => `<option value="${p.id}">${p.cliente_nome} | ${p.vendedor_nome}</option>`).join('');
+        } else {
+            select.innerHTML = '<option>Não há cargas pendentes.</option>';
+        }
+    }
+
+    function mostrarDetalhes() {
+        const id = document.getElementById('select_proposta').value;
+        const det = document.getElementById('detalhes_carga');
+        const p = propostasLocais.find(x => x.id == id);
+
+        if (p) {
+            det.style.display = 'block';
+            document.getElementById('view_cliente').innerText = p.cliente_nome;
+            document.getElementById('view_vendedor').innerText = p.vendedor_nome;
+            document.getElementById('view_desc').innerText = p.descricao_mercadoria || "Material sem descrição detalhada.";
+            document.getElementById('view_teto').innerText = `R$ ${parseFloat(p.valor_sugerido_operacional || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            
+            // Tratamento da imagem do comercial
+            const imgElement = document.getElementById('view_foto');
+            if(p.foto_url) {
+                imgElement.src = p.foto_url;
+            } else {
+                imgElement.src = "https://via.placeholder.com/150?text=Sem+Foto";
+            }
+        } else {
+            det.style.display = 'none';
+        }
+    }
+
+    async function finalizarOperacao() {
+        const idProposta = document.getElementById('select_proposta').value;
+        if(!idProposta) return alert("Selecione uma carga!");
+
+        const m1 = document.getElementById('mot1').value;
+        const v1 = parseFloat(document.getElementById('vlr1').value) || 0;
+
+        if(!m1 || v1 <= 0) return alert("Erro: Motorista de Coleta e Valor são obrigatórios!");
+
+        const { error } = await supabaseClient.from('operacoes').insert([{
+            proposta_id: idProposta,
+            motorista_nome: m1,
+            valor_pago_motorista: v1,
+            motorista_2_nome: document.getElementById('mot2').value || null,
+            valor_pago_motorista_2: parseFloat(document.getElementById('vlr2').value) || 0
+        }]);
+
+        if (!error) {
+            await supabaseClient.from('propostas').update({ status: 'concluido' }).eq('id', idProposta);
+            alert("✅ Operação Finalizada com Sucesso!");
+            location.reload();
+        } else {
+            alert("Erro ao salvar operação: " + error.message);
+        }
+    }
+
+    carregar();
+</script>
+</body>
+</html>
