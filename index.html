@@ -1,65 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <title>Sistema Logística - Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobren Logística - Acesso</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; padding-top: 100px; background: #f0f2f5; }
-        .login-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #1e293b; }
-        input { display: block; width: 250px; margin-bottom: 10px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; }
-        button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #1d4ed8; }
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 2.5rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 350px; }
+        .login-card h2 { margin-bottom: 1.5rem; text-align: center; font-size: 1.5rem; color: var(--primary); }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; }
+        input { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; box-sizing: border-box; transition: border 0.2s; }
+        input:focus { outline: none; border-color: var(--primary); ring: 2px var(--primary); }
+        button { width: 100%; padding: 0.75rem; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 1rem; margin-top: 1rem; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        .loader { display: none; text-align: center; margin-top: 10px; font-size: 0.8rem; color: #64748b; }
     </style>
 </head>
 <body>
+
     <div class="login-card">
         <h2>Jobren Logística</h2>
-        <input type="email" id="email" placeholder="Seu e-mail">
-        <input type="password" id="password" placeholder="Sua senha">
-        <button onclick="handleLogin()">Entrar</button>
+        
+        <div class="form-group">
+            <label for="email">E-mail Corporativo</label>
+            <input type="email" id="email" placeholder="nome@jobren.com.br">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Senha</label>
+            <input type="password" id="password" placeholder="••••••••">
+        </div>
+
+        <button id="btnLogin">Entrar no Sistema</button>
+        <div id="loader" class="loader">Validando credenciais...</div>
     </div>
 
     <script src="config.js"></script>
+
     <script>
-        async function handleLogin() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnLogin = document.getElementById('btnLogin');
+            const loader = document.getElementById('loader');
 
-            // Verificação básica se os campos estão vazios
-            if (!email || !password) {
-                alert("Preencha todos os campos");
-                return;
-            }
+            btnLogin.addEventListener('click', async () => {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
 
-            // Usando supabaseClient definido no config.js
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ 
-                email: email, 
-                password: password 
-            });
+                // 1. Verificação de Preenchimento
+                if (!email || !password) {
+                    alert("Por favor, preencha todos os campos.");
+                    return;
+                }
 
-            if (error) {
-                alert("Erro no Login: " + error.message);
-            } else {
+                // 2. Verificação se o Supabase carregou do config.js
+                if (typeof supabaseClient === 'undefined') {
+                    alert("Erro técnico: Conexão com Supabase não encontrada. Verifique o arquivo config.js.");
+                    return;
+                }
+
+                // Inicia carregamento
+                btnLogin.disabled = true;
+                loader.style.display = 'block';
+
                 try {
-                    // Buscamos a função na tabela 'perfis'
+                    // 3. Tentativa de Login
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+
+                    if (error) throw error;
+
+                    // 4. Busca de Perfil (Comercial/Operacional/Financeiro)
                     const { data: perfil, error: perfilError } = await supabaseClient
                         .from('perfis')
                         .select('funcao')
                         .eq('id', data.user.id)
                         .single();
 
-                    if (perfilError) throw perfilError;
+                    if (perfilError) {
+                        alert("Acesso autorizado, mas seu cargo (perfil) não foi configurado. Contate o administrador.");
+                    } else {
+                        // 5. Sucesso - Salva e Redireciona
+                        localStorage.setItem('user_role', perfil.funcao);
+                        window.location.href = 'dashboard.html';
+                    }
 
-                    // Salva a função e redireciona
-                    localStorage.setItem('user_role', perfil.funcao);
-                    window.location.href = 'dashboard.html';
                 } catch (err) {
-                    console.error("Erro ao buscar perfil:", err);
-                    alert("Usuário logado, mas perfil não encontrado.");
+                    alert("Falha no login: " + err.message);
+                } finally {
+                    btnLogin.disabled = false;
+                    loader.style.display = 'none';
                 }
-            }
-        }
+            });
+        });
     </script>
 </body>
 </html>
