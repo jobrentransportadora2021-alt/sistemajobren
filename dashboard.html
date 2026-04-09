@@ -1,77 +1,163 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <title>Painel Logística</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobren Logística - Painel</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .modulo { border: 1px solid #ccc; padding: 15px; margin: 10px; border-radius: 5px; display: none; }
+        :root { --primary: #2563eb; --bg: #f1f5f9; --text: #0f172a; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; }
+        
+        /* Menu Lateral */
+        nav { width: 250px; background: #1e293b; color: white; height: 100vh; padding: 20px; box-sizing: border-box; }
+        nav h2 { font-size: 1.2rem; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+        .user-info { font-size: 0.8rem; color: #94a3b8; margin-bottom: 30px; }
+        
+        /* Área Principal */
+        main { flex: 1; padding: 30px; overflow-y: auto; }
+        .modulo { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; display: none; }
         .visivel { display: block; }
-        h3 { margin-top: 0; color: #2563eb; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
+        
+        h3 { margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        
+        label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.85rem; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-top: 15px; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+
+        .item-financeiro { background: #f8fafc; padding: 10px; border-left: 4px solid var(--primary); margin-bottom: 8px; font-size: 0.9rem; }
+        .logout { color: #f87171; cursor: pointer; font-size: 0.9rem; margin-top: 20px; display: block; }
     </style>
 </head>
 <body>
-    <h2>Sistema Integrado - <span id="user-role-display"></span></h2>
 
-    <div id="comercial" class="modulo">
-        <h3>🛒 Comercial</h3>
-        <label>Cliente:</label> <input type="text" id="cliente">
-        <label>Valor Mercadoria:</label> <input type="number" id="vlr_merca">
-        <label>Valor Frete (Cliente):</label> <input type="number" id="vlr_frete">
-        <button onclick="salvarProposta()">Gerar Proposta</button>
-    </div>
-
-    <div id="operacional" class="modulo">
-        <h3>🚚 Operacional</h3>
-        <label>Origem:</label> <input type="text" id="origem">
-        <label>Destino:</label> <input type="text" id="destino">
-        <label>Base / Rota Dois:</label> <input type="text" id="rota2">
-        <label>Valor Motorista:</label> <input type="number" id="vlr_motorista">
-        <button onclick="iniciarViagem()">Iniciar Viagem</button>
-    </div>
-
-    <div id="financeiro" class="modulo">
-        <h3>💰 Financeiro</h3>
-        <div id="resumo-lucro">
-            <p>Aguardando fechamento de propostas...</p>
+    <nav>
+        <h2>Jobren Logística</h2>
+        <div class="user-info">
+            Perfil: <span id="user-role-display">Carregando...</span>
+            <span class="logout" onclick="logout()">Sair do Sistema</span>
         </div>
-    </div>
+    </nav>
+
+    <main>
+        <div id="comercial" class="modulo">
+            <h3>🛒 Comercial</h3>
+            <div class="grid">
+                <div>
+                    <label>Cliente:</label>
+                    <input type="text" id="cliente" placeholder="Razão Social">
+                </div>
+                <div>
+                    <label>Valor Mercadoria (R$):</label>
+                    <input type="number" id="vlr_merca">
+                </div>
+                <div>
+                    <label>Valor Frete Cliente (R$):</label>
+                    <input type="number" id="vlr_frete">
+                </div>
+            </div>
+            <button onclick="salvarProposta()">Gerar Proposta</button>
+        </div>
+
+        <div id="operacional" class="modulo">
+            <h3>🚚 Operacional</h3>
+            <div class="grid">
+                <div>
+                    <label>Origem:</label>
+                    <input type="text" id="origem" placeholder="Cidade - SP">
+                </div>
+                <div>
+                    <label>Destino:</label>
+                    <input type="text" id="destino" placeholder="Cidade - UF">
+                </div>
+                <div>
+                    <label>Base / Rota Dois:</label>
+                    <input type="text" id="rota2" placeholder="Ex: Base Campinas">
+                </div>
+                <div>
+                    <label>Valor Motorista (R$):</label>
+                    <input type="number" id="vlr_motorista">
+                </div>
+            </div>
+            <button onclick="iniciarViagem()">Iniciar Viagem</button>
+        </div>
+
+        <div id="financeiro" class="modulo">
+            <h3>💰 Financeiro</h3>
+            <div id="resumo-lucro">
+                <p>Carregando dados financeiros...</p>
+            </div>
+        </div>
+    </main>
 
     <script src="config.js"></script>
     <script>
+        // Pega o cargo do localStorage
         const role = localStorage.getItem('user_role');
+        
+        if (!role) {
+            window.location.href = 'index.html'; // Proteção: se não tiver cargo, volta pro login
+        }
+
         document.getElementById('user-role-display').innerText = role.toUpperCase();
 
-        // Lógica de Visibilidade
+        // Lógica de Visibilidade Baseada no Cargo
         if (role === 'comercial' || role === 'admin') document.getElementById('comercial').classList.add('visivel');
         if (role === 'operacional' || role === 'admin') document.getElementById('operacional').classList.add('visivel');
         if (role === 'financeiro' || role === 'admin') document.getElementById('financeiro').classList.add('visivel');
 
+        // Função: Salvar Comercial
         async function salvarProposta() {
-            const { error } = await supabase.from('propostas').insert([{
+            const btn = event.target;
+            btn.disabled = true;
+
+            const { error } = await supabaseClient.from('propostas').insert([{
                 cliente_nome: document.getElementById('cliente').value,
                 valor_mercadoria: document.getElementById('vlr_merca').value,
-                valor_frete_cliente: document.getElementById('vlr_frete').value
+                valor_frete_cliente: document.getElementById('vlr_frete').value,
+                status: 'pendente'
             }]);
-            if (!error) alert("Proposta salva!");
+
+            if (error) {
+                alert("Erro ao salvar: " + error.message);
+            } else {
+                alert("Proposta enviada ao Operacional!");
+                location.reload();
+            }
+            btn.disabled = false;
         }
 
-        // Se for Financeiro, carrega a VIEW que criamos no SQL
+        // Função: Carregar Financeiro (Geralmente Admins e Financeiro)
         if (role === 'financeiro' || role === 'admin') {
             carregarFinanceiro();
         }
 
         async function carregarFinanceiro() {
-            const { data } = await supabase.from('financeiro_consolidado').select('*');
-            if (data) {
-                const html = data.map(item => `
-                    <div style="border-bottom: 1px solid #eee; padding: 5px;">
-                        <b>${item.cliente_nome}</b> | Receita: R$${item.receita} | Custo: R$${item.custo} | 
-                        <span style="color: green">Lucro: R$${item.lucro_operacional}</span>
-                    </div>
-                `).join('');
-                document.getElementById('resumo-lucro').innerHTML = html;
+            const { data, error } = await supabaseClient.from('financeiro_consolidado').select('*');
+            
+            if (error) {
+                document.getElementById('resumo-lucro').innerHTML = "<p>Sem dados financeiros para exibir.</p>";
+                return;
             }
+
+            const html = data.map(item => `
+                <div class="item-financeiro">
+                    <strong>${item.cliente_nome}</strong><br>
+                    Rec: R$ ${item.receita} | Custo: R$ ${item.custo} | 
+                    <span style="color: ${item.lucro_operacional >= 0 ? 'green' : 'red'}">
+                        <b>Lucro: R$ ${item.lucro_operacional}</b>
+                    </span>
+                </div>
+            `).join('');
+            
+            document.getElementById('resumo-lucro').innerHTML = data.length ? html : "<p>Nenhuma operação concluída.</p>";
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
         }
     </script>
 </body>
