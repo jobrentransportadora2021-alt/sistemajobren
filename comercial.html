@@ -2,6 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jobren - Comercial Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -41,6 +42,16 @@
                 <label>Cliente / Razão Social</label>
                 <input type="text" id="cliente" placeholder="Ex: Lorenzetti S.A.">
             </div>
+
+            <div>
+                <label>📍 Origem (Cidade/UF)</label>
+                <input type="text" id="origem" placeholder="Ex: São Paulo/SP">
+            </div>
+            <div>
+                <label>🏁 Destino (Cidade/UF)</label>
+                <input type="text" id="destino" placeholder="Ex: Salvador/BA">
+            </div>
+
             <div class="full">
                 <label>Descrição da Carga</label>
                 <textarea id="descricao" placeholder="Ex: 20 pallets de chuveiros..."></textarea>
@@ -66,7 +77,6 @@
 
     <script src="config.js"></script>
     <script>
-        // Função para mostrar a foto na tela
         function previewImage(input) {
             const preview = document.getElementById('preview');
             const label = document.getElementById('upload-label');
@@ -81,27 +91,36 @@
             }
         }
 
-        // --- AQUI ENTRA O CÓDIGO QUE VOCÊ ENVIOU ---
         async function salvarProposta() {
             const btn = document.getElementById('btnSalvar');
             const file = document.getElementById('foto').files[0];
             let publicUrl = "";
 
+            // Valores numéricos
             const v_merca = parseFloat(document.getElementById('vlr_merca').value) || 0;
             const v_frete = parseFloat(document.getElementById('vlr_frete').value) || 0;
             const v_sugestao = parseFloat(document.getElementById('vlr_sugerido_operacional').value) || 0;
+
+            // Valores de rota (Obrigatórios no banco de dados)
+            const origem = document.getElementById('origem').value;
+            const destino = document.getElementById('destino').value;
+
+            if (!origem || !destino || !document.getElementById('cliente').value) {
+                return alert("Preencha Cliente, Origem e Destino para continuar.");
+            }
 
             btn.disabled = true;
             btn.innerHTML = "Processando...";
 
             try {
+                // 1. Upload da imagem para o Storage
                 if (file) {
                     const fileName = `${Date.now()}_carga.jpg`;
                     const { data: uploadData, error: uploadError } = await supabaseClient.storage
                         .from('mercadorias')
                         .upload(fileName, file);
 
-                    if (uploadError) throw new Error("Erro Foto: " + uploadError.message);
+                    if (uploadError) throw new Error("Erro no upload da foto: " + uploadError.message);
 
                     const { data: urlData } = supabaseClient.storage
                         .from('mercadorias')
@@ -109,9 +128,12 @@
                     publicUrl = urlData.publicUrl;
                 }
 
+                // 2. Inserção na tabela 'propostas'
                 const { error: dbError } = await supabaseClient.from('propostas').insert([{
                     vendedor_nome: document.getElementById('vendedor').value || "Não informado",
-                    cliente_nome: document.getElementById('cliente').value || "Cliente Avulso",
+                    cliente_nome: document.getElementById('cliente').value,
+                    origem: origem,
+                    destino: destino,
                     descricao_mercadoria: document.getElementById('descricao').value || "",
                     valor_mercadoria: v_merca,
                     valor_frete_cliente: v_frete,
@@ -122,12 +144,12 @@
 
                 if (dbError) throw dbError;
 
-                alert("Carga enviada com sucesso!");
+                alert("✅ Carga registrada com sucesso!");
                 location.reload();
 
             } catch (err) {
-                alert("Erro no envio: " + err.message);
                 console.error(err);
+                alert("Erro ao salvar: " + err.message);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = "Enviar para Operacional 🚀";
