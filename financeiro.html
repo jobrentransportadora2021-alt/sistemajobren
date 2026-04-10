@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
         .container { max-width: 800px; margin: auto; }
         
         .toolbar { 
@@ -17,9 +17,7 @@
             align-items: center;
         }
         
-        .search-input { 
-            flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none;
-        }
+        .search-input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; }
 
         .btn-excel { 
             background: #166534; color: white; border: none; padding: 12px 20px; 
@@ -32,18 +30,21 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
+        .header-info { display: flex; justify-content: space-between; align-items: flex-start; }
+        .vendedor-tag { background: #e2e8f0; color: #475569; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; margin-top: 4px; display: inline-block; }
+
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
-        .box { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; position: relative; }
+        .box { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; display: block; }
         .valor { font-size: 1.2rem; font-weight: 700; display: block; }
         
-        /* Badge para Forma de Pagamento */
         .pagamento-badge {
             font-size: 0.7rem; padding: 3px 8px; border-radius: 12px;
             font-weight: bold; text-transform: uppercase; margin-top: 5px; display: inline-block;
         }
-        .pix { background: #e0f2fe; color: #0369a1; }
-        .cartao { background: #fef3c7; color: #92400e; }
+        .pix { background: #dcfce7; color: #166534; }
+        .cartao { background: #e0f2fe; color: #0369a1; }
+        .padrao { background: #f1f5f9; color: #475569; }
 
         .lucro-box { 
             margin-top: 15px; padding: 15px; border-radius: 10px; text-align: center;
@@ -59,7 +60,7 @@
         <h2>💰 Financeiro: Comercial + Operacional</h2>
 
         <div class="toolbar">
-            <input type="text" id="filtroCliente" class="search-input" placeholder="🔍 Buscar cliente, ID ou forma de pagamento...">
+            <input type="text" id="filtroGeral" class="search-input" placeholder="🔍 Buscar cliente, vendedor ou pagamento...">
             <button onclick="exportarExcel()" class="btn-excel">📊 Baixar Relatório</button>
         </div>
 
@@ -75,7 +76,6 @@
 
         async function carregarDados() {
             try {
-                // Certifique-se que a coluna 'forma_pagamento' existe na sua view/tabela
                 const { data, error } = await supabaseClient
                     .from('financeiro_consolidado')
                     .select('*')
@@ -85,7 +85,7 @@
                 dadosLocais = data;
                 renderizarCards(dadosLocais);
             } catch (err) {
-                document.getElementById('lista').innerHTML = `<div style="color:red">Erro: ${err.message}</div>`;
+                document.getElementById('lista').innerHTML = `<div style="color:red; text-align:center;">Erro ao carregar: ${err.message}</div>`;
             }
         }
 
@@ -101,39 +101,41 @@
                 const custo = Number(item.custo_operacional || 0);
                 const lucro = Number(item.lucro_liquido || (receita - custo));
                 const formaPgto = item.forma_pagamento || 'Não informado';
+                const vendedor = item.vendedor_nome || 'N/I';
                 
-                const classePgto = formaPgto.toLowerCase().includes('pix') ? 'pix' : 'cartao';
-                const corLucro = lucro >= 0 ? '#166534' : '#991b1b';
-                const fundoLucro = lucro >= 0 ? '#dcfce7' : '#fee2e2';
+                // Lógica de cores para o badge de pagamento
+                let classePgto = 'padrao';
+                if(formaPgto.toLowerCase().includes('pix')) classePgto = 'pix';
+                else if(formaPgto.toLowerCase().includes('cartão')) classePgto = 'cartao';
 
                 return `
                     <div class="card">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div class="header-info">
                             <div>
-                                <span style="font-weight:bold; font-size:1.2rem; display:block;">
-                                    👤 ${item.cliente_nome || 'Sem vínculo'}
-                                </span>
+                                <span style="font-weight:bold; font-size:1.1rem; display:block;">👤 ${item.cliente_nome || 'Sem vínculo'}</span>
+                                <span class="vendedor-tag">🤝 Vendedor: ${vendedor}</span>
+                                <br>
                                 <span class="pagamento-badge ${classePgto}">💳 ${formaPgto}</span>
                             </div>
                             <small style="color:#94a3b8">#${item.id || ''}</small>
                         </div>
 
                         <div class="grid">
-                            <div class="box">
-                                <span class="label">Receita (Comercial)</span>
+                            <div class="box" style="border-left: 4px solid #2563eb;">
+                                <span class="label">Receita Acordada</span>
                                 <span class="valor" style="color:#2563eb">
                                     R$ ${receita.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </span>
                             </div>
-                            <div class="box">
-                                <span class="label">Custo (Operacional)</span>
+                            <div class="box" style="border-left: 4px solid #dc2626;">
+                                <span class="label">Custo Operacional</span>
                                 <span class="valor" style="color:#dc2626">
                                     R$ ${custo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                 </span>
                             </div>
                         </div>
 
-                        <div class="lucro-box" style="background:${fundoLucro}; color:${corLucro}">
+                        <div class="lucro-box" style="background:${lucro >= 0 ? '#dcfce7' : '#fee2e2'}; color:${lucro >= 0 ? '#166534' : '#991b1b'}">
                             <span class="label" style="color:inherit; opacity:0.8">Resultado Final</span>
                             R$ ${lucro.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </div>
@@ -142,10 +144,12 @@
             }).join('');
         }
 
-        document.getElementById('filtroCliente').addEventListener('input', (e) => {
+        // Filtro aprimorado para Cliente, Vendedor e Pagamento
+        document.getElementById('filtroGeral').addEventListener('input', (e) => {
             const termo = e.target.value.toLowerCase();
             const filtrados = dadosLocais.filter(item => {
                 return (item.cliente_nome || '').toLowerCase().includes(termo) || 
+                       (item.vendedor_nome || '').toLowerCase().includes(termo) ||
                        (item.forma_pagamento || '').toLowerCase().includes(termo);
             });
             renderizarCards(filtrados);
@@ -153,18 +157,20 @@
 
         function exportarExcel() {
             const exportData = dadosLocais.map(item => ({
+                "ID": item.id,
                 "Cliente": item.cliente_nome || "Sem vínculo",
-                "Forma de Pagamento": item.forma_pagamento || "N/I",
-                "Receita Comercial (R$)": item.receita_comercial || 0,
-                "Custo Operacional (R$)": item.custo_operacional || 0,
-                "Resultado Final (R$)": item.lucro_liquido || 0,
+                "Vendedor": item.vendedor_nome || "N/I",
+                "Pagamento": item.forma_pagamento || "N/I",
+                "Receita (R$)": item.receita_comercial || 0,
+                "Custo (R$)": item.custo_operacional || 0,
+                "Lucro (R$)": item.lucro_liquido || 0,
                 "Data": new Date(item.created_at).toLocaleDateString('pt-BR')
             }));
 
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
-            XLSX.writeFile(wb, `Relatorio_Jobren_Completo.xlsx`);
+            XLSX.writeFile(wb, `Relatorio_Jobren_Financeiro.xlsx`);
         }
 
         carregarDados();
