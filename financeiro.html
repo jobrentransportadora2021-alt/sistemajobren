@@ -2,69 +2,207 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jobren - Financeiro Integrado</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
-        .container { max-width: 700px; margin: auto; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
+        .container { max-width: 800px; margin: auto; }
+        
+        /* Barra de Ferramentas */
+        .toolbar { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 25px; 
+            background: white; 
+            padding: 15px; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            align-items: center;
+        }
+        
+        .search-input { 
+            flex: 1; 
+            padding: 12px; 
+            border-radius: 8px; 
+            border: 1px solid #cbd5e1; 
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        .search-input:focus { border-color: #2563eb; }
+
+        .btn-excel { 
+            background: #166534; 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-excel:hover { background: #14532d; }
+
+        /* Estilo dos Cards */
         .card { 
-            background: white; padding: 20px; border-radius: 15px; 
-            border-left: 10px solid #2563eb; margin-bottom: 20px;
+            background: white; 
+            padding: 20px; 
+            border-radius: 15px; 
+            border-left: 10px solid #2563eb; 
+            margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
+        
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
-        .box { background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; font-weight: bold; }
-        .valor { font-size: 1.1rem; font-weight: 700; display: block; }
+        .box { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: bold; margin-bottom: 5px; display: block; }
+        .valor { font-size: 1.2rem; font-weight: 700; display: block; }
+        
         .lucro-box { 
-            margin-top: 15px; padding: 15px; border-radius: 10px; text-align: center;
-            font-size: 1.4rem; font-weight: 900;
+            margin-top: 15px; 
+            padding: 15px; 
+            border-radius: 10px; 
+            text-align: center;
+            font-size: 1.5rem; 
+            font-weight: 900;
         }
+
+        #status { text-align: center; color: #64748b; margin-top: 20px; }
     </style>
 </head>
 <body>
+
     <div class="container">
         <h2>💰 Financeiro: Comercial + Operacional</h2>
-        <div id="lista">Sincronizando...</div>
+
+        <div class="toolbar">
+            <input type="text" id="filtroCliente" class="search-input" placeholder="🔍 Buscar por cliente ou ID...">
+            <button onclick="exportarExcel()" class="btn-excel">
+                <span>📊</span> Baixar Relatório
+            </button>
+        </div>
+
+        <div id="lista">
+            <div id="status">Sincronizando com banco de dados...</div>
+        </div>
     </div>
 
     <script src="config.js"></script>
-    <script>
-        async function carregar() {
-            const { data, error } = await supabaseClient
-                .from('financeiro_consolidado')
-                .select('*')
-                .order('created_at', { ascending: false });
 
-            if (error) {
-                document.getElementById('lista').innerHTML = "Erro ao carregar view.";
+    <script>
+        let dadosLocais = []; // Cache para busca sem recarregar
+
+        async function carregarDados() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('financeiro_consolidado')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                dadosLocais = data;
+                renderizarCards(dadosLocais);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('lista').innerHTML = `<div id="status" style="color:red">Erro ao conectar: ${err.message}</div>`;
+            }
+        }
+
+        function renderizarCards(dados) {
+            const container = document.getElementById('lista');
+            
+            if (dados.length === 0) {
+                container.innerHTML = `<div id="status">Nenhum registro encontrado para esta busca.</div>`;
                 return;
             }
 
-            document.getElementById('lista').innerHTML = data.map(i => {
-                const lucro = Number(i.lucro_liquido);
+            container.innerHTML = dados.map(item => {
+                const receita = Number(item.receita_comercial || 0);
+                const custo = Number(item.custo_operacional || 0);
+                const lucro = Number(item.lucro_liquido || (receita - custo));
+                
+                // Cores dinâmicas baseadas no resultado
+                const corLucro = lucro >= 0 ? '#166534' : '#991b1b';
+                const fundoLucro = lucro >= 0 ? '#dcfce7' : '#fee2e2';
+
                 return `
                     <div class="card">
-                        <span style="font-weight:bold; font-size:1.2rem;">👤 ${i.cliente_nome || 'Sem vínculo'}</span>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:bold; font-size:1.2rem; color:#1e293b;">
+                                👤 ${item.cliente_nome || 'Sem vínculo'}
+                            </span>
+                            <small style="color:#94a3b8">#${item.id || 'N/A'}</small>
+                        </div>
+
                         <div class="grid">
                             <div class="box">
                                 <span class="label">Receita (Comercial)</span>
-                                <span class="valor" style="color:#2563eb">R$ ${Number(i.receita_comercial).toLocaleString('pt-BR')}</span>
+                                <span class="valor" style="color:#2563eb">
+                                    R$ ${receita.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
                             </div>
                             <div class="box">
                                 <span class="label">Custo (Operacional)</span>
-                                <span class="valor" style="color:#dc2626">R$ ${Number(i.custo_operacional).toLocaleString('pt-BR')}</span>
+                                <span class="valor" style="color:#dc2626">
+                                    R$ ${custo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
                             </div>
                         </div>
-                        <div class="lucro-box" style="background:${lucro >= 0 ? '#dcfce7' : '#fee2e2'}; color:${lucro >= 0 ? '#166534' : '#991b1b'}">
-                            <span class="label" style="color:inherit">Resultado Final</span>
-                            R$ ${lucro.toLocaleString('pt-BR')}
+
+                        <div class="lucro-box" style="background:${fundoLucro}; color:${corLucro}">
+                            <span class="label" style="color:inherit; opacity:0.8">Resultado Final</span>
+                            R$ ${lucro.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </div>
                     </div>
                 `;
             }).join('');
         }
-        carregar();
+
+        // Função de busca em tempo real
+        document.getElementById('filtroCliente').addEventListener('input', (e) => {
+            const termo = e.target.value.toLowerCase();
+            const filtrados = dadosLocais.filter(item => {
+                const nome = (item.cliente_nome || '').toLowerCase();
+                const id = String(item.id || '').toLowerCase();
+                return nome.includes(termo) || id.includes(termo);
+            });
+            renderizarCards(filtrados);
+        });
+
+        // Função para gerar o Excel
+        function exportarExcel() {
+            if (dadosLocais.length === 0) {
+                alert("Não há dados para exportar.");
+                return;
+            }
+
+            // Preparar os dados (formatação amigável para o Excel)
+            const exportData = dadosLocais.map(item => ({
+                "Cliente": item.cliente_nome || "Sem vínculo",
+                "Receita Comercial (R$)": item.receita_comercial || 0,
+                "Custo Operacional (R$)": item.custo_operacional || 0,
+                "Resultado Final (R$)": item.lucro_liquido || (item.receita_comercial - item.custo_operacional),
+                "Data de Registro": new Date(item.created_at).toLocaleDateString('pt-BR')
+            }));
+
+            // Criar planilha
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Relatório Financeiro");
+
+            // Baixar arquivo
+            XLSX.writeFile(wb, `Jobren_Financeiro_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
+        }
+
+        // Iniciar carga
+        carregarDados();
     </script>
 </body>
 </html>
