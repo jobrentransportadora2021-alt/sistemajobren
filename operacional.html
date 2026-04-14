@@ -36,7 +36,7 @@
         </div>
 
         <div class="form-group">
-            <label>Placa do Veículo:</label>
+            <label>Placa do Veículo (Opcional):</label>
             <input type="text" id="placa" placeholder="ABC-1234">
         </div>
 
@@ -46,7 +46,7 @@
 
     <script src="config.js"></script>
     <script>
-        // 1. Carrega as propostas do comercial
+        // 1. Carrega as propostas disponíveis
         async function carregarPropostas() {
             const select = document.getElementById('selectProposta');
             try {
@@ -58,12 +58,12 @@
                 if (error) throw error;
 
                 if (!data || data.length === 0) {
-                    select.innerHTML = '<option value="">Nenhuma proposta encontrada</option>';
+                    select.innerHTML = '<option value="">Nenhuma proposta disponível</option>';
                     return;
                 }
 
                 select.innerHTML = '<option value="">-- Selecione o Cliente --</option>' + 
-                    data.map(p => `<option value="${p.id}">${p.cliente_nome} (ID: ${p.id})</option>`).join('');
+                    data.map(p => `<option value="${p.id}">${p.cliente_nome} (Ref: #${p.id})</option>`).join('');
             
             } catch (error) {
                 console.error("Erro ao carregar:", error);
@@ -74,54 +74,53 @@
         // 2. Salva o custo na tabela 'operacoes'
         async function salvarOperacional() {
             const btn = document.getElementById('btnAcao');
+            const msg = document.getElementById('mensagem');
+            
             const propostaId = document.getElementById('selectProposta').value;
             const valorCusto = document.getElementById('valorMotorista').value;
-            const placaVeiculo = document.getElementById('placa').value;
-            const msg = document.getElementById('mensagem');
 
             if (!propostaId || !valorCusto) {
-                alert("Preencha a carga e o valor!");
+                alert("Por favor, selecione o cliente e o valor!");
                 return;
             }
 
             btn.disabled = true;
             msg.style.color = "#475569";
-            msg.innerText = "Salvando custo...";
+            msg.innerText = "Registrando custo...";
 
             try {
-                // Removida a coluna data_operacao que causava erro
+                // Envia apenas o que é garantido existir no banco para não dar erro de coluna
                 const { error } = await supabaseClient
                     .from('operacoes')
                     .insert([{
                         proposta_id: propostaId,
-                        valor_pago_motorista: parseFloat(valorCusto),
-                        placa: placaVeiculo
+                        valor_pago_motorista: parseFloat(valorCusto)
                     }]);
 
                 if (error) throw error;
 
+                // Sucesso
                 msg.style.color = "#16a34a";
-                msg.innerText = "✅ Sucesso! O Financeiro foi atualizado.";
+                msg.innerText = "✅ Custo salvo! Financeiro atualizado.";
                 
-                // Limpa campos
+                // Limpa os campos
                 document.getElementById('valorMotorista').value = "";
                 document.getElementById('placa').value = "";
                 document.getElementById('selectProposta').value = "";
                 
+                // Recarrega a lista
                 carregarPropostas();
 
             } catch (error) {
-                console.error("Erro detalhado:", error);
+                console.error("Erro ao salvar:", error);
                 msg.style.color = "#dc2626";
-                // Exibe uma mensagem mais clara para o usuário
-                msg.innerText = "Erro: " + (error.message.includes("schema cache") 
-                    ? "O banco está se atualizando, tente novamente em 1 minuto." 
-                    : error.message);
+                msg.innerText = "Erro: " + error.message;
             } finally {
                 btn.disabled = false;
             }
         }
 
+        // Inicia a lista ao abrir a página
         window.onload = carregarPropostas;
     </script>
 </body>
