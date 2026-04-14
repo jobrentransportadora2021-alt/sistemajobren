@@ -8,16 +8,14 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; }
         .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { color: #1e293b; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }
-        .form-group { margin-bottom: 15px; padding: 10px; border-radius: 8px; }
+        h2 { color: #1e293b; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; }
         .motorista-extra { background: #f8fafc; border: 1px dashed #cbd5e1; margin-top: 10px; display: none; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; font-size: 14px; }
         select, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
-        .btn-add { background: #64748b; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin-bottom: 15px; }
-        .btn-salvar { background: #2563eb; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-salvar:hover { background: #1d4ed8; }
-        .btn-salvar:disabled { background: #94a3b8; }
-        #mensagem { margin-top: 15px; text-align: center; font-weight: bold; }
+        .btn-add { background: #64748b; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; margin-bottom: 15px; width: 100%; }
+        .btn-salvar { background: #2563eb; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 16px; }
+        #mensagem { margin-top: 15px; text-align: center; font-weight: bold; min-height: 24px; }
     </style>
 </head>
 <body>
@@ -33,7 +31,7 @@
         </div>
 
         <div class="form-group" style="background: #eff6ff;">
-            <label>👤 Motorista Principal (ou Coleta):</label>
+            <label>👤 Motorista (Coleta):</label>
             <input type="text" id="nomeMotorista1" placeholder="Nome do motorista">
             <label>Valor Pago (R$):</label>
             <input type="number" id="valor1" step="0.01" placeholder="Ex: 1000.00">
@@ -48,7 +46,11 @@
             <input type="number" id="valor2" step="0.01" placeholder="Ex: 500.00">
         </div>
 
-     
+        <div class="form-group">
+            <label>Placa do Veículo:</label>
+            <input type="text" id="placa" placeholder="ABC-1234">
+        </div>
+
         <button onclick="salvarOperacional()" id="btnAcao" class="btn-salvar">Finalizar e Somar Custos</button>
         <div id="mensagem"></div>
     </div>
@@ -85,12 +87,19 @@
             const btn = document.getElementById('btnAcao');
             const msg = document.getElementById('mensagem');
             
-            const propostaId = document.getElementById('selectProposta').value;
-            const nome1 = document.getElementById('nomeMotorista1').value;
-            const valor1 = parseFloat(document.getElementById('valor1').value) || 0;
-            const nome2 = document.getElementById('nomeMotorista2').value;
-            const valor2 = parseFloat(document.getElementById('valor2').value) || 0;
-            const placa = document.getElementById('placa').value;
+            // Verificação de segurança para evitar o erro de "null"
+            const campoProposta = document.getElementById('selectProposta');
+            const campoValor1 = document.getElementById('valor1');
+            const campoValor2 = document.getElementById('valor2');
+
+            if (!campoProposta || !campoValor1) {
+                console.error("Erro: Campos essenciais não encontrados no HTML.");
+                return;
+            }
+
+            const propostaId = campoProposta.value;
+            const valor1 = parseFloat(campoValor1.value) || 0;
+            const valor2 = campoValor2 ? (parseFloat(campoValor2.value) || 0) : 0;
 
             if (!propostaId || valor1 <= 0) {
                 alert("Selecione a carga e informe o valor do primeiro motorista!");
@@ -98,8 +107,6 @@
             }
 
             const valorTotalCusto = valor1 + valor2;
-            const nomesConcatenados = nome2 ? `${nome1} / ${nome2}` : nome1;
-
             btn.disabled = true;
             msg.innerText = "Registrando...";
 
@@ -108,25 +115,26 @@
                     .from('operacoes')
                     .insert([{
                         proposta_id: propostaId,
-                        valor_pago_motorista: valorTotalCusto,
-                        // Certifique-se que essas colunas existem no seu banco:
-                        // nome_motorista: nomesConcatenados, 
-                        // placa: placa 
+                        valor_pago_motorista: valorTotalCusto
                     }]);
 
                 if (error) throw error;
 
                 msg.style.color = "green";
-                msg.innerText = `✅ Sucesso! Total R$ ${valorTotalCusto.toFixed(2)} registrado.`;
+                msg.innerText = `✅ Sucesso! R$ ${valorTotalCusto.toFixed(2)} registrado.`;
                 
-                // Limpar campos
-                document.querySelectorAll('input').forEach(i => i.value = "");
-                document.getElementById('blocoExtra').style.display = 'none';
+                // Limpa campos
+                document.getElementById('valor1').value = "";
+                if(document.getElementById('valor2')) document.getElementById('valor2').value = "";
+                if(document.getElementById('nomeMotorista1')) document.getElementById('nomeMotorista1').value = "";
+                if(document.getElementById('nomeMotorista2')) document.getElementById('nomeMotorista2').value = "";
+                document.getElementById('selectProposta').value = "";
+                
                 carregarPropostas();
 
             } catch (error) {
                 msg.style.color = "red";
-                msg.innerText = "Erro: " + error.message;
+                msg.innerText = "Erro ao salvar: " + error.message;
             } finally {
                 btn.disabled = false;
             }
