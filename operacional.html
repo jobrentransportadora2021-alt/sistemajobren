@@ -26,7 +26,7 @@
         <div class="form-group">
             <label>Selecione a Carga (Comercial):</label>
             <select id="selectProposta">
-                <option value="">Carregando propostas abertas...</option>
+                <option value="">Carregando propostas...</option>
             </select>
         </div>
 
@@ -46,14 +46,13 @@
 
     <script src="config.js"></script>
     <script>
-        // 1. Carrega as propostas do comercial para vincular o custo
+        // 1. Carrega as propostas do comercial
         async function carregarPropostas() {
             const select = document.getElementById('selectProposta');
-            
             try {
                 const { data, error } = await supabaseClient
                     .from('propostas')
-                    .select('id, cliente_nome, valor_frete_cliente')
+                    .select('id, cliente_nome')
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
@@ -64,10 +63,10 @@
                 }
 
                 select.innerHTML = '<option value="">-- Selecione o Cliente --</option>' + 
-                    data.map(p => `<option value="${p.id}">${p.cliente_nome} (Ref: #${p.id})</option>`).join('');
+                    data.map(p => `<option value="${p.id}">${p.cliente_nome} (ID: ${p.id})</option>`).join('');
             
             } catch (error) {
-                console.error("Erro ao carregar propostas:", error);
+                console.error("Erro ao carregar:", error);
                 select.innerHTML = '<option>Erro ao carregar dados</option>';
             }
         }
@@ -80,51 +79,49 @@
             const placaVeiculo = document.getElementById('placa').value;
             const msg = document.getElementById('mensagem');
 
-            // Validação simples
             if (!propostaId || !valorCusto) {
-                alert("Por favor, selecione a carga e informe o valor do custo!");
+                alert("Preencha a carga e o valor!");
                 return;
             }
 
-            // Bloqueia o botão para evitar cliques duplos
             btn.disabled = true;
             msg.style.color = "#475569";
-            msg.innerText = "Processando... aguarde.";
+            msg.innerText = "Salvando custo...";
 
             try {
+                // Removida a coluna data_operacao que causava erro
                 const { error } = await supabaseClient
                     .from('operacoes')
                     .insert([{
-                        proposta_id: propostaId, // FK para a tabela propostas
+                        proposta_id: propostaId,
                         valor_pago_motorista: parseFloat(valorCusto),
-                        placa: placaVeiculo,
-                        data_operacao: new Date().toISOString()
+                        placa: placaVeiculo
                     }]);
 
                 if (error) throw error;
 
-                // Sucesso
                 msg.style.color = "#16a34a";
-                msg.innerText = "✅ Custo registrado! Financeiro atualizado.";
+                msg.innerText = "✅ Sucesso! O Financeiro foi atualizado.";
                 
-                // Limpa os campos
+                // Limpa campos
                 document.getElementById('valorMotorista').value = "";
                 document.getElementById('placa').value = "";
                 document.getElementById('selectProposta').value = "";
                 
-                // Recarrega a lista
                 carregarPropostas();
 
             } catch (error) {
-                console.error("Erro ao salvar:", error);
+                console.error("Erro detalhado:", error);
                 msg.style.color = "#dc2626";
-                msg.innerText = "Erro ao salvar: " + (error.message || "Erro desconhecido");
+                // Exibe uma mensagem mais clara para o usuário
+                msg.innerText = "Erro: " + (error.message.includes("schema cache") 
+                    ? "O banco está se atualizando, tente novamente em 1 minuto." 
+                    : error.message);
             } finally {
                 btn.disabled = false;
             }
         }
 
-        // Inicia a carga ao abrir a página
         window.onload = carregarPropostas;
     </script>
 </body>
