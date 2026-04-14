@@ -11,10 +11,11 @@
         h2 { color: #1e293b; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; }
-        select, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; }
-        .btn-salvar { background: #2563eb; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        select, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 16px; }
+        .btn-salvar { background: #2563eb; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
         .btn-salvar:hover { background: #1d4ed8; }
-        #mensagem { margin-top: 15px; text-align: center; font-weight: bold; }
+        .btn-salvar:disabled { background: #94a3b8; cursor: not-allowed; }
+        #mensagem { margin-top: 15px; text-align: center; font-weight: bold; min-height: 24px; }
     </style>
 </head>
 <body>
@@ -39,7 +40,7 @@
             <input type="text" id="placa" placeholder="ABC-1234">
         </div>
 
-        <button onclick="salvarOperacional()" class="btn-salvar">Finalizar e Gerar Custo</button>
+        <button onclick="salvarOperacional()" id="btnAcao" class="btn-salvar">Finalizar e Gerar Custo</button>
         <div id="mensagem"></div>
     </div>
 
@@ -48,55 +49,83 @@
         // 1. Carrega as propostas do comercial para vincular o custo
         async function carregarPropostas() {
             const select = document.getElementById('selectProposta');
-            const { data, error } = await supabaseClient
-                .from('propostas')
-                .select('id, cliente_nome, valor_frete_cliente')
-                .order('created_at', { ascending: false });
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('propostas')
+                    .select('id, cliente_nome, valor_frete_cliente')
+                    .order('created_at', { ascending: false });
 
-            if (error) {
-                select.innerHTML = '<option>Erro ao carregar</option>';
-                return;
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    select.innerHTML = '<option value="">Nenhuma proposta encontrada</option>';
+                    return;
+                }
+
+                select.innerHTML = '<option value="">-- Selecione o Cliente --</option>' + 
+                    data.map(p => `<option value="${p.id}">${p.cliente_nome} (Ref: #${p.id})</option>`).join('');
+            
+            } catch (error) {
+                console.error("Erro ao carregar propostas:", error);
+                select.innerHTML = '<option>Erro ao carregar dados</option>';
             }
-
-            select.innerHTML = '<option value="">-- Selecione o Cliente --</option>' + 
-                data.map(p => `<option value="${p.id}">${p.cliente_nome} (Ref: #${p.id})</option>`).join('');
         }
 
         // 2. Salva o custo na tabela 'operacoes'
         async function salvarOperacional() {
+            const btn = document.getElementById('btnAcao');
             const propostaId = document.getElementById('selectProposta').value;
             const valorCusto = document.getElementById('valorMotorista').value;
             const placaVeiculo = document.getElementById('placa').value;
             const msg = document.getElementById('mensagem');
 
+            // Validação simples
             if (!propostaId || !valorCusto) {
-                alert("Selecione a carga e o valor do custo!");
+                alert("Por favor, selecione a carga e informe o valor do custo!");
                 return;
             }
 
-            msg.innerText = "Salvando...";
+            // Bloqueia o botão para evitar cliques duplos
+            btn.disabled = true;
+            msg.style.color = "#475569";
+            msg.innerText = "Processando... aguarde.";
 
-            const { error } = await supabaseClient
-                .from('operacoes')
-                .insert([{
-                    proposta_id: propostaId, // VÍNCULO CRUCIAL
-                    valor_pago_motorista: parseFloat(valorCusto),
-                    placa: placaVeiculo,
-                    data_operacao: new Date()
-                }]);
+            try {
+                const { error } = await supabaseClient
+                    .from('operacoes')
+                    .insert([{
+                        proposta_id: propostaId, // FK para a tabela propostas
+                        valor_pago_motorista: parseFloat(valorCusto),
+                        placa: placaVeiculo,
+                        data_operacao: new Date().toISOString()
+                    }]);
 
-            if (error) {
-                msg.style.color = "red";
-                msg.innerText = "Erro: " + error.message;
-            } else {
-                msg.style.color = "green";
-                msg.innerText = "Custo registrado com sucesso! O Financeiro já foi atualizado.";
+                if (error) throw error;
+
+                // Sucesso
+                msg.style.color = "#16a34a";
+                msg.innerText = "✅ Custo registrado! Financeiro atualizado.";
+                
+                // Limpa os campos
                 document.getElementById('valorMotorista').value = "";
                 document.getElementById('placa').value = "";
+                document.getElementById('selectProposta').value = "";
+                
+                // Recarrega a lista
+                carregarPropostas();
+
+            } catch (error) {
+                console.error("Erro ao salvar:", error);
+                msg.style.color = "#dc2626";
+                msg.innerText = "Erro ao salvar: " + (error.message || "Erro desconhecido");
+            } finally {
+                btn.disabled = false;
             }
         }
 
-        carregarPropostas();
+        // Inicia a carga ao abrir a página
+        window.onload = carregarPropostas;
     </script>
 </body>
 </html>
