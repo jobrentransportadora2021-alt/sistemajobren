@@ -31,7 +31,6 @@
             position: relative;
         }
         
-        /* Estilo do Botão Excluir */
         .btn-excluir {
             position: absolute;
             top: 15px;
@@ -107,23 +106,25 @@
             }
         }
 
-        // FUNÇÃO PARA EXCLUIR REGISTRO
+        // FUNÇÃO CORRIGIDA: APAGA DA TABELA REAL 'OPERACOES'
         async function removerProposta(id) {
-            const confirmar = confirm("⚠️ ATENÇÃO: Deseja realmente excluir este registro financeiro? Esta ação não pode ser desfeita.");
+            const confirmar = confirm("⚠️ ATENÇÃO: Deseja realmente excluir este registro operacional? Isso removerá o custo deste financeiro definitivamente.");
             
             if (!confirmar) return;
 
             try {
+                // Aqui está o segredo: deletamos de 'operacoes' usando o ID que vem da view
                 const { error } = await supabaseClient
-                    .from('financeiro_consolidado')
+                    .from('operacoes')
                     .delete()
                     .eq('id', id);
 
                 if (error) throw error;
 
                 alert("Registro removido com sucesso!");
-                carregarDados(); // Recarrega a lista automaticamente
+                carregarDados(); 
             } catch (err) {
+                console.error(err);
                 alert("Erro ao excluir: " + err.message);
             }
         }
