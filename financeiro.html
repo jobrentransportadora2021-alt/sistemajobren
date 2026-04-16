@@ -68,11 +68,17 @@
 <script>
     let dadosParaExcel = [];
 
-    // Formata data para o padrão Brasil
+    // Formata data e hora para o padrão Brasil
     function formatarData(isoString) {
         if (!isoString) return "---";
         const d = new Date(isoString);
-        return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return d.toLocaleString('pt-BR', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
     }
 
     async function carregarFinanceiro() {
@@ -103,18 +109,19 @@
                 somaReceita += receita;
                 somaCustos += custoTotal;
 
-                // Salva para o Excel
+                // Organiza os dados para o Excel (Cabeçalhos bonitos)
                 dadosParaExcel.push({
-                    "DATA_HORA": formatarData(item.created_at),
-                    "VENDEDOR": item.vendedor_nome || "Não informado",
+                    "DATA E HORA": formatarData(item.created_at),
+                    "VENDEDOR": item.vendedor_nome || "---",
                     "CLIENTE": item.cliente_nome,
                     "ORIGEM": item.cidade_origem,
                     "DESTINO": item.cidade_destino,
-                    "RECEITA_R$": receita,
-                    "CUSTO_MOTORISTAS_R$": custoTotal,
-                    "LUCRO_R$": lucro,
-                    "MOTORISTA_1": op?.motorista_1 || "---",
-                    "MOTORISTA_2": op?.motorista_2 || "---"
+                    "RECEITA (R$)": receita,
+                    "CUSTO MOTORISTAS (R$)": custoTotal,
+                    "LUCRO LÍQUIDO (R$)": lucro,
+                    "MOTORISTA 01": op?.motorista_1 || "---",
+                    "MOTORISTA 02": op?.motorista_2 || "---",
+                    "STATUS": op ? 'OPERACIONAL OK' : 'PENDENTE'
                 });
 
                 html += `
@@ -152,10 +159,32 @@
 
     function baixarExcel() {
         if (dadosParaExcel.length === 0) return alert("Nada para exportar.");
+
+        // 1. Cria a planilha
         const ws = XLSX.utils.json_to_sheet(dadosParaExcel);
+
+        // 2. CONFIGURAÇÃO DE ESPAÇAMENTO (Largura das colunas)
+        const wscols = [
+            { wch: 20 }, // Data e Hora
+            { wch: 15 }, // Vendedor
+            { wch: 25 }, // Cliente
+            { wch: 20 }, // Origem
+            { wch: 20 }, // Destino
+            { wch: 15 }, // Receita
+            { wch: 22 }, // Custo Motoristas
+            { wch: 18 }, // Lucro Líquido
+            { wch: 20 }, // Motorista 1
+            { wch: 20 }, // Motorista 2
+            { wch: 18 }  // Status
+        ];
+        ws['!cols'] = wscols;
+
+        // 3. Gera o arquivo
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Financeiro_Mensal");
-        XLSX.writeFile(wb, `Jobren_Relatorio_${new Date().toLocaleDateString('pt-BR')}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "Relatório Mensal");
+        
+        const hoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+        XLSX.writeFile(wb, `Financeiro_Jobren_${hoje}.xlsx`);
     }
 
     window.onload = carregarFinanceiro;
