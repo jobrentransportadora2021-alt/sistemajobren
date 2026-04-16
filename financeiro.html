@@ -63,14 +63,26 @@
 <script>
     let dadosParaExcel = [];
 
+    // Função para formatar a data ISO do Supabase para o Excel
+    function formatarDataHora(isoString) {
+        if (!isoString) return "---";
+        const data = new Date(isoString);
+        return data.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
     async function carregarFinanceiro() {
         try {
-            // BUSCA PROPOSTA + OPERACAO (mesmo que a operacao ainda não exista)
             const { data, error } = await supabaseClient
                 .from('propostas')
                 .select(`
                     *,
-                    operacoes (*)
+                    operacoes!fk_vinculo_final (*)
                 `)
                 .order('created_at', { ascending: false });
 
@@ -82,7 +94,6 @@
             dadosParaExcel = [];
 
             data.forEach(item => {
-                // Pegamos a primeira operação vinculada (se houver)
                 const op = item.operacoes && item.operacoes.length > 0 ? item.operacoes[0] : null;
                 
                 const custoTotal = (op?.valor_m1 || 0) + (op?.valor_m2 || 0);
@@ -93,14 +104,18 @@
                 somaCustos += custoTotal;
 
                 const nomesMotoristas = op ? `${op.motorista_1 || ''} ${op.motorista_2 ? '/ ' + op.motorista_2 : ''}` : '---';
-
+                
+                // Adicionando DATA e HORA no objeto do Excel
                 dadosParaExcel.push({
+                    "Data/Hora Registro": formatarDataHora(item.created_at),
                     "Cliente": item.cliente_nome,
                     "Vendedor": item.vendedor_nome,
+                    "Rota": `${item.cidade_origem} -> ${item.cidade_destino}`,
                     "Receita": receita,
                     "Custo": custoTotal,
                     "Lucro": lucro,
-                    "Motoristas": nomesMotoristas
+                    "Motoristas": nomesMotoristas,
+                    "Status": op ? 'Finalizado' : 'Pendente'
                 });
 
                 html += `
@@ -114,31 +129,4 @@
                         <td><small>${nomesMotoristas}</small></td>
                         <td>
                             <span class="badge" style="background: ${op ? '#dcfce7' : '#f1f5f9'}; color: ${op ? '#166534' : '#64748b'}">
-                                ${op ? 'Operacional OK' : 'Pend. Operac.'}
-                            </span>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            document.getElementById('tabelaFinanceiro').innerHTML = html;
-            document.getElementById('totalReceita').innerText = `R$ ${somaReceita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-            document.getElementById('totalCustos').innerText = `R$ ${somaCustos.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-            document.getElementById('totalLucro').innerText = `R$ ${(somaReceita - somaCustos).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-
-        } catch (e) {
-            document.getElementById('tabelaFinanceiro').innerHTML = `<tr><td colspan="6">Erro: ${e.message}</td></tr>`;
-        }
-    }
-
-    function baixarExcel() {
-        const worksheet = XLSX.utils.json_to_sheet(dadosParaExcel);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Financeiro");
-        XLSX.writeFile(workbook, `Financeiro_Jobren.xlsx`);
-    }
-
-    window.onload = carregarFinanceiro;
-</script>
-</body>
-</html>
+                                ${op ? 'Operacional
