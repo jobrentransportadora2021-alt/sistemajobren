@@ -32,8 +32,8 @@
 
         <div class="form-group" style="background: #fdf2f8; border-color: #fbcfe8;">
             <label>📍 Rota da Operação:</label>
-            <input type="text" id="origem" placeholder="Cidade de Origem">
-            <input type="text" id="destino" placeholder="Cidade de Destino">
+            <input type="text" id="origem" placeholder="Cidade de Origem (Obrigatório)">
+            <input type="text" id="destino" placeholder="Cidade de Destino (Obrigatório)">
         </div>
 
         <div class="form-group" style="background: #eff6ff;">
@@ -85,7 +85,6 @@
                 select.innerHTML = '<option value="">-- Selecione o Cliente --</option>' + 
                     data.map(p => `<option value="${p.id}">${p.cliente_nome} (Ref: ${p.id})</option>`).join('');
             } catch (error) {
-                console.error("Erro ao carregar:", error);
                 select.innerHTML = '<option>Erro ao carregar propostas</option>';
             }
         }
@@ -94,46 +93,47 @@
             const btn = document.getElementById('btnAcao');
             const msg = document.getElementById('mensagem');
             
-            // Captura de valores
             const propostaId = document.getElementById('selectProposta').value;
             const origemVal = document.getElementById('origem').value;
             const destinoVal = document.getElementById('destino').value;
             const motorista1 = document.getElementById('nomeMotorista1').value;
             const valor1 = parseFloat(document.getElementById('valor1').value) || 0;
+            const motorista2 = document.getElementById('nomeMotorista2').value;
             const valor2 = parseFloat(document.getElementById('valor2').value) || 0;
             
-            // Validação básica para evitar erros
-            if (!propostaId || !origemVal || !destinoVal || valor1 <= 0) {
-                alert("Preencha a Carga, Origem, Destino e o Valor do Motorista!");
+            if (!propostaId || !origemVal || !destinoVal) {
+                alert("Preencha Carga, Origem e Destino!");
                 return;
             }
 
-            const valorTotalCusto = valor1 + valor2;
             btn.disabled = true;
             msg.style.color = "#2563eb";
             msg.innerText = "Salvando no sistema...";
 
             try {
-                // Inserção com todos os campos obrigatórios identificados no seu erro
+                // Objeto montado com os nomes exatos das colunas da sua imagem
+                const payload = {
+                    proposta_id: propostaId,
+                    origem: origemVal,
+                    destino: destinoVal,
+                    motorista_nome: motorista1,
+                    valor_pago_motorista: valor1,
+                    motorista_2_nome: motorista2 || null,
+                    valor_pago_motorista_2: valor2 || 0,
+                    status_viagem: "Em trânsito",
+                    data_operacao: new Date().toISOString()
+                };
+
                 const { error } = await supabaseClient
                     .from('operacoes')
-                    .insert([
-                        {
-                            proposta_id: propostaId,
-                            origem: origemVal,
-                            destino: destinoVal,
-                            valor_pago_motorista: valorTotalCusto,
-                            status: "em_transito" // Campo padrão para evitar null
-                        }
-                    ]);
+                    .insert([payload]);
 
                 if (error) throw error;
 
-                // Sucesso
                 msg.style.color = "green";
-                msg.innerText = `✅ Sucesso! R$ ${valorTotalCusto.toFixed(2)} registrado.`;
+                msg.innerText = `✅ Sucesso! Operação registrada.`;
                 
-                // Limpeza dos campos
+                // Limpar campos
                 document.getElementById('origem').value = "";
                 document.getElementById('destino').value = "";
                 document.getElementById('valor1').value = "";
