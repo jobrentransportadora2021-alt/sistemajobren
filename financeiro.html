@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren - Financeiro Inteligente</title>
+    <title>Jobren - Financeiro Oficial</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -11,14 +11,15 @@
         :root { --primary: #2563eb; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); padding: 20px; margin: 0; }
         .container { max-width: 1600px; margin: auto; }
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         
-        .filters { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; gap: 15px; align-items: flex-end; margin-bottom: 25px; flex-wrap: wrap; }
+        .filters { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; gap: 15px; align-items: flex-end; margin-bottom: 25px; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .field { display: flex; flex-direction: column; gap: 5px; }
         .field label { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
-        input, select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; }
+        input, select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; min-width: 140px; }
 
         .card-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
-        .stat { background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .stat { background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
         .stat label { font-size: 0.75rem; color: #64748b; font-weight: 600; }
         .stat div { font-size: 1.3rem; font-weight: 700; margin-top: 5px; }
 
@@ -30,8 +31,7 @@
         .btn-confirma { border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: bold; transition: 0.2s; }
         .confirmado { background: var(--success); color: white; cursor: default; }
         .pendente { background: #e2e8f0; color: #475569; }
-        .pendente:hover { background: #cbd5e1; }
-
+        
         .badge-forma { background: #e0e7ff; color: #4338ca; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
         .btn-excel { background: #166534; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
     </style>
@@ -39,9 +39,9 @@
 <body>
 
 <div class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h2>💰 Gestão Financeira Jobren</h2>
-        <button class="btn-excel" onclick="baixarExcel()">📊 Exportar Relatório</button>
+    <div class="header-flex">
+        <h2>💰 Financeiro Profissional Jobren</h2>
+        <button class="btn-excel" onclick="baixarExcel()">📊 Exportar Excel (Com Totais)</button>
     </div>
 
     <div class="filters">
@@ -54,6 +54,7 @@
                 <option value="">Todas</option>
                 <option value="pix">PIX</option>
                 <option value="boleto">BOLETO</option>
+                <option value="cartao">CARTÃO</option>
             </select>
         </div>
         <button class="btn-confirma confirmado" style="padding: 10px 20px;" onclick="carregarFinanceiro()">🔍 Filtrar</button>
@@ -61,8 +62,8 @@
 
     <div class="card-stats">
         <div class="stat"><label>Receita Bruta</label><div id="totalReceita" style="color:var(--primary)">R$ 0,00</div></div>
-        <div class="stat"><label>Efetivo em Caixa</label><div id="totalPago" style="color:var(--success)">R$ 0,00</div></div>
-        <div class="stat"><label>Saldo a Receber</label><div id="totalPendente" style="color:var(--warning)">R$ 0,00</div></div>
+        <div class="stat"><label>Recebido (Caixa)</label><div id="totalPago" style="color:var(--success)">R$ 0,00</div></div>
+        <div class="stat"><label>Gasto (Motoristas)</label><div id="totalGasto" style="color:var(--danger)">R$ 0,00</div></div>
         <div class="stat"><label>Lucro Estimado</label><div id="totalLucro">R$ 0,00</div></div>
     </div>
 
@@ -71,11 +72,12 @@
             <tr>
                 <th>Data</th>
                 <th>Vendedor</th>
-                <th>Cliente</th>
+                <th>Cliente / Rota</th>
                 <th>Forma</th>
-                <th>Valor Total</th>
-                <th>Confirmação de Recebimento</th>
-                <th>Status Final</th>
+                <th>Receita</th>
+                <th>Gasto</th>
+                <th>Confirmação</th>
+                <th>Recebido</th>
             </tr>
         </thead>
         <tbody id="tabelaFinanceiro"></tbody>
@@ -86,6 +88,7 @@
 <script>
     let dadosParaExcel = [];
     let vendedoresUnicos = new Set();
+    let globais = { receita: 0, gasto: 0, lucro: 0 };
 
     async function carregarFinanceiro() {
         const dInic = document.getElementById('dataInicio').value;
@@ -104,7 +107,7 @@
             const { data, error } = await query;
             if (error) throw error;
 
-            let html = '', sReceita = 0, sPagoReal = 0, sLucro = 0;
+            let html = '', sReceita = 0, sPagoReal = 0, sGasto = 0;
             dadosParaExcel = [];
 
             data.forEach(item => {
@@ -112,74 +115,101 @@
                 
                 const receita = item.valor_frete_cliente || 0;
                 const op = item.operacoes?.[0] || null;
-                const custo = (op?.valor_m1 || 0) + (op?.valor_m2 || 0);
+                const gasto = (op?.valor_m1 || 0) + (op?.valor_m2 || 0);
                 const forma = (item.forma_pagamento || '').toLowerCase();
                 
-                let recebidoDesteFrete = 0;
-                let interfaceBotoes = '';
+                let recebidoLinha = 0;
+                let botoesHTML = '';
 
                 if (forma.includes('pix')) {
-                    // Lógica 70/30 para PIX
-                    if (item.pago_70) recebidoDesteFrete += (receita * 0.7);
-                    if (item.pago_30) recebidoDesteFrete += (receita * 0.3);
-
-                    interfaceBotoes = `
+                    if (item.pago_70) recebidoLinha += (receita * 0.7);
+                    if (item.pago_30) recebidoLinha += (receita * 0.3);
+                    botoesHTML = `
                         <div class="btn-group">
-                            <button class="btn-confirma ${item.pago_70 ? 'confirmado' : 'pendente'}" onclick="atualizarStatus('${item.id}', 'pago_70', ${item.pago_70})">70%</button>
-                            <button class="btn-confirma ${item.pago_30 ? 'confirmado' : 'pendente'}" onclick="atualizarStatus('${item.id}', 'pago_30', ${item.pago_30})">30%</button>
+                            <button class="btn-confirma ${item.pago_70 ? 'confirmado' : 'pendente'}" onclick="confirmar('${item.id}', 'pago_70', ${item.pago_70})">70%</button>
+                            <button class="btn-confirma ${item.pago_30 ? 'confirmado' : 'pendente'}" onclick="confirmar('${item.id}', 'pago_30', ${item.pago_30})">30%</button>
                         </div>`;
                 } else {
-                    // Lógica Total para Boleto/Outros
-                    if (item.pago_cliente) recebidoDesteFrete = receita;
-
-                    interfaceBotoes = `
-                        <button class="btn-confirma ${item.pago_cliente ? 'confirmado' : 'pendente'}" onclick="atualizarStatus('${item.id}', 'pago_cliente', ${item.pago_cliente})">
-                            ${item.pago_cliente ? '✅ RECEBIDO TOTAL' : '⏳ CONFIRMAR TOTAL'}
-                        </button>`;
+                    if (item.pago_cliente) recebidoLinha = receita;
+                    botoesHTML = `<button class="btn-confirma ${item.pago_cliente ? 'confirmado' : 'pendente'}" onclick="confirmar('${item.id}', 'pago_cliente', ${item.pago_cliente})">${item.pago_cliente ? '✅ OK' : 'Confirmar'}</button>`;
                 }
 
                 sReceita += receita;
-                sPagoReal += recebidoDesteFrete;
-                sLucro += (receita - custo);
+                sGasto += gasto;
+                sPagoReal += recebidoLinha;
+
+                dadosParaExcel.push({
+                    "DATA": new Date(item.created_at).toLocaleDateString('pt-BR'),
+                    "VENDEDOR": item.vendedor_nome || '-',
+                    "CLIENTE": item.cliente_nome,
+                    "FORMA": forma.toUpperCase(),
+                    "RECEITA (R$)": receita,
+                    "GASTO (R$)": gasto,
+                    "LUCRO (R$)": (receita - gasto),
+                    "STATUS": recebidoLinha >= receita ? "TOTAL PAGO" : (recebidoLinha > 0 ? "PARCIAL" : "PENDENTE")
+                });
 
                 html += `
                     <tr>
                         <td><small>${new Date(item.created_at).toLocaleDateString('pt-BR')}</small></td>
                         <td>${item.vendedor_nome || '-'}</td>
                         <td><strong>${item.cliente_nome}</strong></td>
-                        <td><span class="badge-forma">${forma.toUpperCase() || 'S/INFO'}</span></td>
-                        <td style="font-weight:600">R$ ${receita.toLocaleString('pt-BR')}</td>
-                        <td>${interfaceBotoes}</td>
-                        <td style="font-weight:bold; color:${recebidoDesteFrete >= receita ? 'var(--success)' : 'var(--warning)'}">
-                            R$ ${recebidoDesteFrete.toLocaleString('pt-BR')}
-                        </td>
+                        <td><span class="badge-forma">${forma.toUpperCase()}</span></td>
+                        <td>R$ ${receita.toLocaleString('pt-BR')}</td>
+                        <td style="color:var(--danger)">R$ ${gasto.toLocaleString('pt-BR')}</td>
+                        <td>${botoesHTML}</td>
+                        <td style="font-weight:bold; color:var(--success)">R$ ${recebidoLinha.toLocaleString('pt-BR')}</td>
                     </tr>`;
             });
 
-            document.getElementById('tabelaFinanceiro').innerHTML = html || '<tr><td colspan="7" style="text-align:center">Nenhum registro.</td></tr>';
+            globais = { receita: sReceita, gasto: sGasto, lucro: (sReceita - sGasto) };
+
+            document.getElementById('tabelaFinanceiro').innerHTML = html;
             document.getElementById('totalReceita').innerText = `R$ ${sReceita.toLocaleString('pt-BR')}`;
+            document.getElementById('totalGasto').innerText = `R$ ${sGasto.toLocaleString('pt-BR')}`;
             document.getElementById('totalPago').innerText = `R$ ${sPagoReal.toLocaleString('pt-BR')}`;
-            document.getElementById('totalPendente').innerText = `R$ ${(sReceita - sPagoReal).toLocaleString('pt-BR')}`;
-            document.getElementById('totalLucro').innerText = `R$ ${sLucro.toLocaleString('pt-BR')}`;
+            document.getElementById('totalLucro').innerText = `R$ ${(sReceita - sGasto).toLocaleString('pt-BR')}`;
             
-            atualizarVendedoresNoFiltro();
+            atualizarListaVendedores();
         } catch (e) { console.error(e); }
     }
 
-    async function atualizarStatus(id, campo, valorAtual) {
-        if (valorAtual) return; 
-        if (!confirm("Confirmar este recebimento?")) return;
-        const { error } = await supabaseClient.from('propostas').update({ [campo]: true }).eq('id', id);
-        if (error) alert("Erro ao salvar."); else carregarFinanceiro();
+    async function confirmar(id, campo, jaPago) {
+        if (jaPago || !confirm("Confirmar recebimento?")) return;
+        await supabaseClient.from('propostas').update({ [campo]: true }).eq('id', id);
+        carregarFinanceiro();
     }
 
-    function atualizarVendedoresNoFiltro() {
+    function atualizarListaVendedores() {
         const select = document.getElementById('filtroVendedor');
-        const valorAtual = select.value;
+        const atual = select.value;
         select.innerHTML = '<option value="">Todos</option>';
         Array.from(vendedoresUnicos).sort().forEach(v => {
-            select.innerHTML += `<option value="${v}" ${v === valorAtual ? 'selected' : ''}>${v}</option>`;
+            select.innerHTML += `<option value="${v}" ${v === atual ? 'selected' : ''}>${v}</option>`;
         });
+    }
+
+    function baixarExcel() {
+        if (dadosParaExcel.length === 0) return alert("Sem dados.");
+        
+        // Adiciona linha de TOTAL no final do array do Excel
+        const totais = {
+            "DATA": "TOTAL DO PERÍODO",
+            "VENDEDOR": "",
+            "CLIENTE": "",
+            "FORMA": "",
+            "RECEITA (R$)": globais.receita,
+            "GASTO (R$)": globais.gasto,
+            "LUCRO (R$)": globais.lucro,
+            "STATUS": ""
+        };
+        
+        const folhaDados = [...dadosParaExcel, {}, totais]; // Linha em branco + Totais
+        
+        const ws = XLSX.utils.json_to_sheet(folhaDados);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Relatorio_Financeiro");
+        XLSX.writeFile(wb, `Financeiro_Jobren_${new Date().toLocaleDateString()}.xlsx`);
     }
 
     window.onload = () => {
