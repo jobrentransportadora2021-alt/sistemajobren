@@ -41,7 +41,7 @@
 <div class="container">
     <div class="header-flex">
         <h2>💰 Financeiro Profissional Jobren</h2>
-        <button class="btn-excel" onclick="baixarExcel()">📊 Exportar Excel (Com Totais)</button>
+        <button class="btn-excel" onclick="baixarExcel()">📊 Exportar Excel Premium</button>
     </div>
 
     <div class="filters">
@@ -76,8 +76,8 @@
                 <th>Forma</th>
                 <th>Receita</th>
                 <th>Gasto</th>
-                <th>Confirmação</th>
-                <th>Recebido</th>
+                <th>Confirmação Recebimento</th>
+                <th>Status Final</th>
             </tr>
         </thead>
         <tbody id="tabelaFinanceiro"></tbody>
@@ -131,7 +131,7 @@
                         </div>`;
                 } else {
                     if (item.pago_cliente) recebidoLinha = receita;
-                    botoesHTML = `<button class="btn-confirma ${item.pago_cliente ? 'confirmado' : 'pendente'}" onclick="confirmar('${item.id}', 'pago_cliente', ${item.pago_cliente})">${item.pago_cliente ? '✅ OK' : 'Confirmar'}</button>`;
+                    botoesHTML = `<button class="btn-confirma ${item.pago_cliente ? 'confirmado' : 'pendente'}" onclick="confirmar('${item.id}', 'pago_cliente', ${item.pago_cliente})">${item.pago_cliente ? '✅ OK' : 'Confirmar Total'}</button>`;
                 }
 
                 sReceita += receita;
@@ -146,6 +146,7 @@
                     "RECEITA (R$)": receita,
                     "GASTO (R$)": gasto,
                     "LUCRO (R$)": (receita - gasto),
+                    "RECEBIDO (R$)": recebidoLinha,
                     "STATUS": recebidoLinha >= receita ? "TOTAL PAGO" : (recebidoLinha > 0 ? "PARCIAL" : "PENDENTE")
                 });
 
@@ -190,26 +191,42 @@
     }
 
     function baixarExcel() {
-        if (dadosParaExcel.length === 0) return alert("Sem dados.");
+        if (dadosParaExcel.length === 0) return alert("Sem dados para exportar.");
         
-        // Adiciona linha de TOTAL no final do array do Excel
+        // 1. Criar a linha de TOTAL consolidado
+        const linhaVazia = {};
         const totais = {
-            "DATA": "TOTAL DO PERÍODO",
+            "DATA": "RESUMO TOTAL",
             "VENDEDOR": "",
             "CLIENTE": "",
             "FORMA": "",
             "RECEITA (R$)": globais.receita,
             "GASTO (R$)": globais.gasto,
             "LUCRO (R$)": globais.lucro,
+            "RECEBIDO (R$)": "", 
             "STATUS": ""
         };
         
-        const folhaDados = [...dadosParaExcel, {}, totais]; // Linha em branco + Totais
-        
-        const ws = XLSX.utils.json_to_sheet(folhaDados);
+        const folhaFinal = [...dadosParaExcel, linhaVazia, totais];
+        const ws = XLSX.utils.json_to_sheet(folhaFinal);
+
+        // 2. Configurar largura das colunas (Espaço bom entre elas)
+        ws['!cols'] = [
+            { wch: 15 }, // Data
+            { wch: 20 }, // Vendedor
+            { wch: 35 }, // Cliente
+            { wch: 15 }, // Forma
+            { wch: 18 }, // Receita
+            { wch: 18 }, // Gasto
+            { wch: 18 }, // Lucro
+            { wch: 18 }, // Recebido
+            { wch: 20 }  // Status
+        ];
+
+        // 3. Gerar o arquivo e baixar
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Relatorio_Financeiro");
-        XLSX.writeFile(wb, `Financeiro_Jobren_${new Date().toLocaleDateString()}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "Financeiro_Jobren");
+        XLSX.writeFile(wb, `Financeiro_Jobren_Relatorio_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
     }
 
     window.onload = () => {
