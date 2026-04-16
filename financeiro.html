@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jobren - Financeiro Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #2563eb; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; }
@@ -17,16 +18,19 @@
         .stat label { font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
         .stat div { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-top: 5px; }
 
+        .actions { display: flex; gap: 10px; }
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
         th { background: #f1f5f9; padding: 15px; text-align: left; font-size: 0.8rem; color: #475569; text-transform: uppercase; }
         td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; color: #1e293b; }
-        tr:hover { background: #f8fafc; }
-
+        
         .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; }
         .bg-lucro { background: #dcfce7; color: #166534; }
         .bg-custo { background: #fee2e2; color: #991b1b; }
         
-        .btn-refresh { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn { border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .btn-refresh { background: var(--primary); color: white; }
+        .btn-excel { background: #166534; color: white; }
+        .btn:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -34,7 +38,10 @@
 <div class="container">
     <h2>
         💰 Painel Financeiro 
-        <button class="btn-refresh" onclick="carregarFinanceiro()">Atualizar Dados</button>
+        <div class="actions">
+            <button class="btn btn-excel" onclick="baixarExcel()">📊 Baixar Excel</button>
+            <button class="btn btn-refresh" onclick="carregarFinanceiro()">🔄 Atualizar</button>
+        </div>
     </h2>
 
     <div class="card-stats">
@@ -43,7 +50,7 @@
         <div class="stat"><label>Lucro Líquido</label><div id="totalLucro" style="color: var(--success)">R$ 0,00</div></div>
     </div>
 
-    <table>
+    <table id="tabelaDados">
         <thead>
             <tr>
                 <th>Cliente / Rota</th>
@@ -62,9 +69,10 @@
 
 <script src="config.js"></script>
 <script>
+    let dadosParaExcel = [];
+
     async function carregarFinanceiro() {
         try {
-            // Buscamos as PROPOSTAS e as OPERACOES vinculadas a elas
             const { data, error } = await supabaseClient
                 .from('propostas')
                 .select(`
@@ -79,8 +87,7 @@
                         motorista_1,
                         valor_m1,
                         motorista_2,
-                        valor_m2,
-                        status_viagem
+                        valor_m2
                     )
                 `);
 
@@ -89,27 +96,66 @@
             let html = '';
             let somaReceita = 0;
             let somaCustos = 0;
+            dadosParaExcel = []; // Limpa a lista para o novo Excel
 
             data.forEach(item => {
-                // Se não houver operação registrada, o custo é 0
                 const custoM1 = item.operacoes?.[0]?.valor_m1 || 0;
                 const custoM2 = item.operacoes?.[0]?.valor_m2 || 0;
                 const custoTotal = custoM1 + custoM2;
-                
                 const receita = item.valor_frete_cliente || 0;
                 const lucro = receita - custoTotal;
 
                 somaReceita += receita;
                 somaCustos += custoTotal;
 
+                // Prepara dados para o Excel
+                dadosParaExcel.push({
+                    "Cliente": item.cliente_nome,
+                    "Vendedor": item.vendedor_nome,
+                    "Origem": item.cidade_origem,
+                    "Destino": item.cidade_destino,
+                    "Receita": receita,
+                    "Custo Motoristas": custoTotal,
+                    "Lucro": lucro,
+                    "Status": custoTotal > 0 ? 'Em Operação' : 'Pendente'
+                });
+
                 html += `
                     <tr>
-                        <td>
-                            <strong>${item.cliente_nome}</strong><br>
-                            <small style="color: #64748b">${item.cidade_origem} ➔ ${item.cidade_destino}</small>
-                        </td>
+                        <td><strong>${item.cliente_nome}</strong><br><small>${item.cidade_origem} ➔ ${item.cidade_destino}</small></td>
                         <td>${item.vendedor_nome || '---'}</td>
-                        <td style="font-weight: 600">R$ ${receita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                        <td style="color: var(--danger)">R$ ${custoTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
-                        <td style="font-weight: bold; color: ${lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">
-                            R$ ${lucro.toLocaleString('pt-BR', {minimumFraction
+                        <td>R$ ${receita.toLocaleString('pt-BR')}</td>
+                        <td style="color: var(--danger)">R$ ${custoTotal.toLocaleString('pt-BR')}</td>
+                        <td style="font-weight: bold; color: ${lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">R$ ${lucro.toLocaleString('pt-BR')}</td>
+                        <td><span class="badge ${custoTotal > 0 ? 'bg-lucro' : 'bg-custo'}">${custoTotal > 0 ? 'Em Operação' : 'Pendente'}</span></td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('tabelaFinanceiro').innerHTML = html;
+            document.getElementById('totalReceita').innerText = `R$ ${somaReceita.toLocaleString('pt-BR')}`;
+            document.getElementById('totalCustos').innerText = `R$ ${somaCustos.toLocaleString('pt-BR')}`;
+            document.getElementById('totalLucro').innerText = `R$ ${(somaReceita - somaCustos).toLocaleString('pt-BR')}`;
+
+        } catch (e) {
+            alert("Erro ao carregar dados: " + e.message);
+        }
+    }
+
+    function baixarExcel() {
+        if (dadosParaExcel.length === 0) return alert("Não há dados para exportar!");
+
+        // Criar uma nova planilha
+        const worksheet = XLSX.utils.json_to_sheet(dadosParaExcel);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Relatorio Mensal");
+
+        // Gerar o arquivo e baixar
+        const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+        XLSX.writeFile(workbook, `Relatorio_Financeiro_Jobren_${dataAtual}.xlsx`);
+    }
+
+    window.onload = carregarFinanceiro;
+</script>
+</body>
+</html>
