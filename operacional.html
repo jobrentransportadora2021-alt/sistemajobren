@@ -3,25 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren - Operacional Inteligente</title>
+    <title>Jobren - Operacional Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
-        .container { max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h2 { color: #1e293b; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
         
-        .info-comercial { background: #fff7ed; border: 1px solid #ffedd5; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none; }
-        .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .info-item { background: white; padding: 8px; border-radius: 6px; border: 1px solid #ffedd5; }
-        .info-label { font-size: 0.7rem; color: #7c2d12; display: block; font-weight: bold; }
+        /* Painel de Frete e Lucro */
+        .info-comercial { background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none; }
+        .grid-info { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .info-item { background: white; padding: 10px; border-radius: 6px; border: 1px solid #bfdbfe; text-align: center; }
+        .info-label { font-size: 0.7rem; color: #1e40af; display: block; font-weight: bold; text-transform: uppercase; }
+        .valor-destaque { font-size: 1.1rem; font-weight: bold; color: #1e293b; }
 
         .form-group { margin-bottom: 15px; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; font-size: 14px; }
-        select, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
+        .bg-rota { background: #f8fafc; border-left: 5px solid #2563eb; }
+        .bg-motorista { background: #fffaf5; border-left: 5px solid #f97316; }
+
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; font-size: 13px; }
+        select, input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 15px; margin-bottom: 10px; }
         
-        .rota-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn-salvar { background: #2563eb; color: white; border: none; padding: 18px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 18px; }
-        .btn-salvar:disabled { background: #94a3b8; }
+        .rota-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 10px; }
+        .btn-salvar { background: #2563eb; color: white; border: none; padding: 18px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 18px; transition: 0.3s; }
+        .btn-salvar:hover { background: #1d4ed8; }
         #mensagem { margin-top: 15px; text-align: center; font-weight: bold; }
     </style>
 </head>
@@ -39,33 +44,53 @@
 
     <div id="painelComercial" class="info-comercial">
         <div class="grid-info">
-            <div class="info-item"><span class="info-label">FRETE ACORDADO</span><span id="infoFrete" style="font-weight:bold">R$ 0,00</span></div>
-            <div class="info-item"><span class="info-label">VENDEDOR</span><span id="infoVendedor">---</span></div>
+            <div class="info-item"><span class="info-label">Receita (Cliente)</span><span id="infoFrete" class="valor-destaque">R$ 0,00</span></div>
+            <div class="info-item"><span class="info-label">Sugestão Gasto</span><span id="infoSugestao" class="valor-destaque" style="color: #f97316;">R$ 0,00</span></div>
+            <div class="info-item"><span class="info-label">Vendedor</span><span id="infoVendedor" class="valor-destaque">---</span></div>
         </div>
     </div>
 
-    <div class="form-group" style="background: #f8fafc;">
-        <label>📍 Origem da Carga:</label>
+    <div class="form-group bg-rota">
+        <label>📍 1. Origem:</label>
         <div class="rota-grid">
-            <select id="estadoOrigem"><option value="">Estado</option></select>
+            <select id="estadoOrigem"><option value="">UF</option></select>
             <select id="cidadeOrigem" disabled><option value="">Cidade</option></select>
         </div>
 
-        <label>📍 Destino Final:</label>
+        <label>🛑 2. Rota Alternativa / Parada (Opcional):</label>
         <div class="rota-grid">
-            <select id="estadoDestino"><option value="">Estado</option></select>
+            <select id="estadoParada"><option value="">UF</option></select>
+            <select id="cidadeParada" disabled><option value="">Cidade</option></select>
+        </div>
+
+        <label>🏁 3. Destino Final:</label>
+        <div class="rota-grid">
+            <select id="estadoDestino"><option value="">UF</option></select>
             <select id="cidadeDestino" disabled><option value="">Cidade</option></select>
         </div>
     </div>
 
-    <div class="form-group">
-        <label>👤 Motorista:</label>
-        <input type="text" id="nomeMotorista" placeholder="Nome do motorista">
-        <label>Valor Pago ao Motorista (R$):</label>
-        <input type="number" id="valorMotorista" step="0.01">
+    <div class="form-group bg-motorista">
+        <div class="grid-info" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>👤 Motorista 01:</label>
+                <input type="text" id="motorista1" placeholder="Nome completo">
+                <label>Valor Pago (M1):</label>
+                <input type="number" id="valorM1" step="0.01" oninput="calcularGastoTotal()">
+            </div>
+            <div>
+                <label>👤 Motorista 02 (Opcional):</label>
+                <input type="text" id="motorista2" placeholder="Nome completo">
+                <label>Valor Pago (M2):</label>
+                <input type="number" id="valorM2" step="0.01" oninput="calcularGastoTotal()">
+            </div>
+        </div>
+        <div style="text-align: right; font-weight: bold; padding-top: 10px; border-top: 1px dashed #cbd5e1;">
+            Total em Motoristas: <span id="totalGasto">R$ 0,00</span>
+        </div>
     </div>
 
-    <button onclick="salvarOperacional()" id="btnAcao" class="btn-salvar">Finalizar Registro</button>
+    <button onclick="salvarOperacional()" id="btnAcao" class="btn-salvar">Finalizar Registro e Iniciar Viagem</button>
     <div id="mensagem"></div>
 </div>
 
@@ -73,60 +98,52 @@
 <script>
     let listaPropostas = [];
 
-    // 1. Carregar Estados ao Iniciar
+    // Carregar Estados
     async function carregarEstados() {
-        const selects = [document.getElementById('estadoOrigem'), document.getElementById('estadoDestino')];
+        const selects = [document.getElementById('estadoOrigem'), document.getElementById('estadoParada'), document.getElementById('estadoDestino')];
         try {
             const response = await fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome");
             const estados = await response.json();
-            const options = estados.map(e => `<option value="${e.sigla}">${e.nome}</option>`).join('');
-            
+            const options = estados.map(e => `<option value="${e.sigla}">${e.sigla}</option>`).join('');
             selects.forEach(s => s.innerHTML += options);
         } catch (e) { console.error("Erro Estados:", e); }
     }
 
-    // 2. Buscar Cidades Dinamicamente
-    async function carregarCidades(sigla, selectId, cidadePreSelecionada = null) {
-        const selectCidade = document.getElementById(selectId);
+    // Carregar Cidades
+    async function carregarCidades(sigla, selectId, preSel = null) {
+        const select = document.getElementById(selectId);
         if (!sigla) return;
-
-        selectCidade.disabled = true;
-        selectCidade.innerHTML = '<option>Carregando...</option>';
-
+        select.disabled = true;
+        select.innerHTML = '<option>...</option>';
         try {
             const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${sigla}/municipios?orderBy=nome`);
             const cidades = await response.json();
-            
-            selectCidade.innerHTML = '<option value="">Selecione a Cidade</option>' + 
-                cidades.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
-            
-            selectCidade.disabled = false;
-
-            if (cidadePreSelecionada) {
-                selectCidade.value = cidadePreSelecionada;
-            }
+            select.innerHTML = '<option value="">Selecione</option>' + cidades.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+            select.disabled = false;
+            if (preSel) select.value = preSel;
         } catch (e) { console.error("Erro Cidades:", e); }
     }
 
-    // Eventos de mudança manual
+    // Eventos de Mudança
     document.getElementById('estadoOrigem').addEventListener('change', (e) => carregarCidades(e.target.value, 'cidadeOrigem'));
+    document.getElementById('estadoParada').addEventListener('change', (e) => carregarCidades(e.target.value, 'cidadeParada'));
     document.getElementById('estadoDestino').addEventListener('change', (e) => carregarCidades(e.target.value, 'cidadeDestino'));
 
-    // 3. Vincular dados quando o operacional seleciona a proposta
     function vincularDadosComerciais() {
         const id = document.getElementById('selectProposta').value;
         const p = listaPropostas.find(item => item.id == id);
-
         if (p) {
             document.getElementById('painelComercial').style.display = 'block';
-            document.getElementById('infoFrete').innerText = `R$ ${Number(p.valor_frete).toLocaleString('pt-BR')}`;
+            document.getElementById('infoFrete').innerText = `R$ ${Number(p.valor_frete_cliente).toLocaleString('pt-BR')}`;
+            document.getElementById('infoSugestao').innerText = `R$ ${Number(p.valor_sugerido_operacional).toLocaleString('pt-BR')}`;
             document.getElementById('infoVendedor').innerText = p.vendedor_nome;
 
-            // Preenchimento Automático dos Estados (Se o vendedor salvou a sigla)
+            // Preenche Origem
             if (p.estado_origem) {
                 document.getElementById('estadoOrigem').value = p.estado_origem;
                 carregarCidades(p.estado_origem, 'cidadeOrigem', p.cidade_origem);
             }
+            // Preenche Destino
             if (p.estado_destino) {
                 document.getElementById('estadoDestino').value = p.estado_destino;
                 carregarCidades(p.estado_destino, 'cidadeDestino', p.cidade_destino);
@@ -134,34 +151,55 @@
         }
     }
 
-    // 4. Carregar Propostas do Supabase
+    function calcularGastoTotal() {
+        const v1 = parseFloat(document.getElementById('valorM1').value) || 0;
+        const v2 = parseFloat(document.getElementById('valorM2').value) || 0;
+        document.getElementById('totalGasto').innerText = `R$ ${(v1 + v2).toLocaleString('pt-BR')}`;
+    }
+
     async function inicializar() {
         await carregarEstados();
-        const { data } = await supabaseClient.from('propostas').select('*').order('created_at', { ascending: false });
+        const { data } = await supabaseClient.from('propostas').select('*').eq('status', 'pendente');
         listaPropostas = data;
-        document.getElementById('selectProposta').innerHTML = '<option value="">-- Selecione --</option>' + 
-            data.map(p => `<option value="${p.id}">${p.cliente_nome}</option>`).join('');
+        document.getElementById('selectProposta').innerHTML = '<option value="">-- Selecione a Carga --</option>' + 
+            data.map(p => `<option value="${p.id}">${p.cliente_nome} (${p.cidade_origem} -> ${p.cidade_destino})</option>`).join('');
     }
 
     async function salvarOperacional() {
         const msg = document.getElementById('mensagem');
+        const btn = document.getElementById('btnAcao');
+        
         const dados = {
             proposta_id: document.getElementById('selectProposta').value,
-            origem: document.getElementById('cidadeOrigem').value + " - " + document.getElementById('estadoOrigem').value,
-            destino: document.getElementById('cidadeDestino').value + " - " + document.getElementById('estadoDestino').value,
-            motorista_nome: document.getElementById('nomeMotorista').value,
-            valor_pago_motorista: parseFloat(document.getElementById('valorMotorista').value) || 0,
-            status_viagem: "Iniciada",
-            data_operacao: new Date().toISOString()
+            origem: `${document.getElementById('cidadeOrigem').value} (${document.getElementById('estadoOrigem').value})`,
+            parada_intermediaria: document.getElementById('cidadeParada').value ? `${document.getElementById('cidadeParada').value} (${document.getElementById('estadoParada').value})` : null,
+            destino: `${document.getElementById('cidadeDestino').value} (${document.getElementById('estadoDestino').value})`,
+            motorista_1: document.getElementById('motorista1').value,
+            valor_m1: parseFloat(document.getElementById('valorM1').value) || 0,
+            motorista_2: document.getElementById('motorista2').value || null,
+            valor_m2: parseFloat(document.getElementById('valorM2').value) || 0,
+            status_viagem: "Em trânsito",
+            data_registro: new Date().toISOString()
         };
 
+        if (!dados.proposta_id || !dados.motorista_1) {
+            alert("Selecione a proposta e informe ao menos o Motorista 1.");
+            return;
+        }
+
+        btn.disabled = true;
         try {
             const { error } = await supabaseClient.from('operacoes').insert([dados]);
             if (error) throw error;
-            msg.innerHTML = "<span style='color:green'>✅ Registrado com Sucesso!</span>";
+            
+            // Atualiza status da proposta para 'Em Viagem'
+            await supabaseClient.from('propostas').update({ status: 'Em Viagem' }).eq('id', dados.proposta_id);
+
+            msg.innerHTML = "<span style='color:green'>✅ Viagem Iniciada com Sucesso!</span>";
             setTimeout(() => location.reload(), 2000);
         } catch (e) {
             msg.innerHTML = "<span style='color:red'>❌ Erro: " + e.message + "</span>";
+            btn.disabled = false;
         }
     }
 
