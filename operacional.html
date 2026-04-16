@@ -46,8 +46,6 @@
             <input type="number" id="valor2" step="0.01" placeholder="Ex: 500.00">
         </div>
 
-     
-
         <button onclick="salvarOperacional()" id="btnAcao" class="btn-salvar">Finalizar e Somar Custos</button>
         <div id="mensagem"></div>
     </div>
@@ -71,12 +69,18 @@
         async function carregarPropostas() {
             const select = document.getElementById('selectProposta');
             try {
-                const { data, error } = await supabaseClient.from('propostas').select('id, cliente_nome').order('created_at', { ascending: false });
+                const { data, error } = await supabaseClient
+                    .from('propostas')
+                    .select('id, cliente_nome')
+                    .order('created_at', { ascending: false });
+                
                 if (error) throw error;
+                
                 select.innerHTML = '<option value="">-- Selecione o Cliente --</option>' + 
                     data.map(p => `<option value="${p.id}">${p.cliente_nome} (Ref: ${p.id})</option>`).join('');
             } catch (error) {
-                select.innerHTML = '<option>Erro ao carregar</option>';
+                console.error("Erro ao carregar:", error);
+                select.innerHTML = '<option>Erro ao carregar propostas</option>';
             }
         }
 
@@ -84,54 +88,62 @@
             const btn = document.getElementById('btnAcao');
             const msg = document.getElementById('mensagem');
             
-            // Verificação de segurança para evitar o erro de "null"
-            const campoProposta = document.getElementById('selectProposta');
-            const campoValor1 = document.getElementById('valor1');
-            const campoValor2 = document.getElementById('valor2');
-
-            if (!campoProposta || !campoValor1) {
-                console.error("Erro: Campos essenciais não encontrados no HTML.");
-                return;
-            }
-
-            const propostaId = campoProposta.value;
-            const valor1 = parseFloat(campoValor1.value) || 0;
-            const valor2 = campoValor2 ? (parseFloat(campoValor2.value) || 0) : 0;
-
+            const propostaId = document.getElementById('selectProposta').value;
+            const valor1 = parseFloat(document.getElementById('valor1').value) || 0;
+            const valor2 = parseFloat(document.getElementById('valor2').value) || 0;
+            
+            // Validação de entrada
             if (!propostaId || valor1 <= 0) {
-                alert("Selecione a carga e informe o valor do primeiro motorista!");
+                alert("Selecione a carga e informe pelo menos o valor do primeiro motorista!");
                 return;
             }
 
             const valorTotalCusto = valor1 + valor2;
             btn.disabled = true;
-            msg.innerText = "Registrando...";
+            msg.style.color = "#2563eb";
+            msg.innerText = "Processando registro...";
 
             try {
+                // Aqui enviamos os dados. 
+                // Se o erro 23502 persistir, verifique se há colunas NOT NULL no Supabase
                 const { error } = await supabaseClient
                     .from('operacoes')
-                    .insert([{
-                        proposta_id: propostaId,
-                        valor_pago_motorista: valorTotalCusto
-                    }]);
+                    .insert([
+                        {
+                            proposta_id: propostaId,
+                            valor_pago_motorista: valorTotalCusto
+                        }
+                    ]);
 
                 if (error) throw error;
 
+                // Sucesso
                 msg.style.color = "green";
                 msg.innerText = `✅ Sucesso! R$ ${valorTotalCusto.toFixed(2)} registrado.`;
                 
-                // Limpa campos
+                // Limpeza dos campos
                 document.getElementById('valor1').value = "";
-                if(document.getElementById('valor2')) document.getElementById('valor2').value = "";
-                if(document.getElementById('nomeMotorista1')) document.getElementById('nomeMotorista1').value = "";
-                if(document.getElementById('nomeMotorista2')) document.getElementById('nomeMotorista2').value = "";
+                document.getElementById('valor2').value = "";
+                document.getElementById('nomeMotorista1').value = "";
+                document.getElementById('nomeMotorista2').value = "";
                 document.getElementById('selectProposta').value = "";
-                
+                document.getElementById('blocoExtra').style.display = 'none';
+                document.getElementById('btnExpandir').innerText = "+ Adicionar Segundo Motorista (Entrega)";
+
+                // Recarrega a lista para garantir sincronia
                 carregarPropostas();
 
             } catch (error) {
+                console.error("Erro detalhado do Supabase:", error);
                 msg.style.color = "red";
-                msg.innerText = "Erro ao salvar: " + error.message;
+                
+                if (error.code === "23502") {
+                    msg.innerText = "Erro: Coluna obrigatória faltando no banco (verifique campos NOT NULL).";
+                } else if (error.code === "23503") {
+                    msg.innerText = "Erro: Essa proposta não existe mais no sistema.";
+                } else {
+                    msg.innerText = "Erro ao salvar: " + error.message;
+                }
             } finally {
                 btn.disabled = false;
             }
