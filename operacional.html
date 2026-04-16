@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren - Painel Operacional Pro</title>
+    <title>Jobren - Painel Operacional Inteligente</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 20px; color: #1e293b; }
         .container { max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { color: #1e293b; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        h2 { color: #1e293b; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
         
-        /* Painel de Informações do Comercial */
+        /* Painel de Visibilidade Comercial */
         .info-comercial { 
             background: #fff7ed; border: 1px solid #ffedd5; padding: 15px; 
             border-radius: 10px; margin-bottom: 20px; display: none; 
@@ -19,18 +19,21 @@
         .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .info-item { background: white; padding: 8px; border-radius: 6px; border: 1px solid #ffedd5; }
         .info-label { font-size: 0.7rem; color: #7c2d12; display: block; }
-        .info-valor { font-weight: bold; font-size: 1rem; color: #1e293b; }
+        .info-valor { font-weight: bold; font-size: 0.95rem; }
 
         .form-group { margin-bottom: 15px; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; }
         label { display: block; font-weight: bold; margin-bottom: 5px; color: #475569; font-size: 14px; }
         select, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
         
         .btn-base { background: #6366f1; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 10px; font-weight: 600; }
-        .btn-add { background: #64748b; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 15px; }
-        .btn-salvar { background: #2563eb; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn-salvar { background: #2563eb; color: white; border: none; padding: 18px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 18px; transition: 0.3s; }
+        .btn-salvar:hover { background: #1d4ed8; }
         
-        .motorista-extra, .campo-base { display: none; margin-top: 10px; }
+        .campo-base, .motorista-extra { display: none; margin-top: 10px; }
         #mensagem { margin-top: 15px; text-align: center; font-weight: bold; }
+
+        /* Estilo para inputs de cidade */
+        input.cidade-input { border-left: 4px solid #2563eb; }
     </style>
 </head>
 <body>
@@ -39,69 +42,87 @@
         <h2>🚚 Registro Operacional</h2>
         
         <div class="form-group">
-            <label>Selecione a Carga Disponível:</label>
-            <select id="selectProposta" onchange="mostrarDetalhesComercial()">
+            <label>Selecione a Proposta Comercial:</label>
+            <select id="selectProposta" onchange="vincularDadosComerciais()">
                 <option value="">Carregando propostas...</option>
             </select>
         </div>
 
         <div id="painelComercial" class="info-comercial">
-            <span class="info-title">📋 Resumo do Acordo Comercial</span>
+            <span class="info-title">📋 Dados Acordados pelo Vendedor</span>
             <div class="grid-info">
                 <div class="info-item">
-                    <span class="info-label">Valor do Frete (Receita)</span>
-                    <span id="infoFrete" class="info-valor">R$ 0,00</span>
+                    <span class="info-label">Frete Cliente (Sua Margem)</span>
+                    <span id="infoFrete" class="info-valor" style="color: #166534;">R$ 0,00</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Vendedor</span>
+                    <span class="info-label">Vendedor Responsável</span>
                     <span id="infoVendedor" class="info-valor">---</span>
                 </div>
                 <div class="info-item" style="grid-column: span 2;">
-                    <span class="info-label">Mercadoria / Obs</span>
+                    <span class="info-label">Mercadoria / Instruções de Coleta</span>
                     <span id="infoObs" class="info-valor">---</span>
                 </div>
             </div>
         </div>
 
         <div class="form-group" style="background: #fdf2f8; border-color: #fbcfe8;">
-            <label>📍 Rota e Percurso:</label>
-            <input type="text" id="origem" placeholder="Cidade de Origem">
+            <label>📍 Rota da Operação (Cidade, Estado):</label>
             
-            <button type="button" class="btn-base" onclick="toggleBase()">+ Adicionar Parada em Base/Transbordo</button>
+            <input type="text" id="origem" list="listaCidades" class="cidade-input" placeholder="Cidade de Origem (Ex: São Paulo, SP)">
+            
+            <button type="button" class="btn-base" onclick="toggleBase()">+ Adicionar Passagem pela Base (Transbordo)</button>
             <div id="campoBase" class="campo-base">
                 <label>🏠 Base Intermediária:</label>
-                <input type="text" id="base_intermediaria" placeholder="Nome da Unidade ou Cidade da Base">
+                <input type="text" id="base_intermediaria" list="listaCidades" placeholder="Cidade da Base">
             </div>
 
-            <input type="text" id="destino" placeholder="Cidade de Destino Final">
+            <input type="text" id="destino" list="listaCidades" class="cidade-input" placeholder="Cidade de Destino Final">
         </div>
+
+        <datalist id="listaCidades">
+            <option value="São Paulo, SP">
+            <option value="Rio de Janeiro, RJ">
+            <option value="Belo Horizonte, MG">
+            <option value="Curitiba, PR">
+            <option value="Porto Alegre, RS">
+            <option value="Goiânia, GO">
+            <option value="Brasília, DF">
+            <option value="Salvador, BA">
+            <option value="Fortaleza, CE">
+            <option value="Recife, PE">
+            <option value="Manaus, AM">
+            <option value="Cuiabá, MT">
+            <option value="Campo Grande, MS">
+            <option value="Vitória, ES">
+            <option value="Florianópolis, SC">
+        </datalist>
 
         <div class="form-group" style="background: #eff6ff;">
-            <label>👤 Motorista (Coleta/Primeiro Trecho):</label>
+            <label>👤 Motorista do Trecho 1:</label>
             <input type="text" id="nomeMotorista1" placeholder="Nome do motorista">
-            <label>Valor Pago (R$):</label>
-            <input type="number" id="valor1" step="0.01" placeholder="Quanto será pago a ele?">
+            <label>Custo do Motorista 1 (R$):</label>
+            <input type="number" id="valor1" step="0.01" placeholder="Valor a pagar">
         </div>
 
-        <button type="button" class="btn-add" id="btnExpandir" onclick="toggleMotoristaExtra()">+ Adicionar Segundo Motorista (Entrega/Segundo Trecho)</button>
+        <button type="button" style="background: #94a3b8; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 15px;" onclick="toggleMotoristaExtra()">+ Adicionar Motorista Trecho 2</button>
 
         <div id="blocoExtra" class="form-group motorista-extra" style="background: #f8fafc;">
-            <label>👤 Segundo Motorista (Entrega):</label>
-            <input type="text" id="nomeMotorista2" placeholder="Nome do segundo motorista">
-            <label>Valor Pago Extra (R$):</label>
+            <label>👤 Motorista do Trecho 2:</label>
+            <input type="text" id="nomeMotorista2" placeholder="Nome do motorista">
+            <label>Custo do Motorista 2 (R$):</label>
             <input type="number" id="valor2" step="0.01" placeholder="Valor extra">
         </div>
 
-        <button onclick="salvarOperacional()" id="btnAcao" class="btn-salvar">Confirmar e Iniciar Viagem</button>
+        <button onclick="salvarOperacional()" id="btnAcao" class="btn-salvar">Finalizar e Registrar Operação</button>
         <div id="mensagem"></div>
     </div>
 
     <script src="config.js"></script>
     <script>
-        let propostasLocais = [];
+        let listaPropostas = [];
 
         async function carregarPropostas() {
-            const select = document.getElementById('selectProposta');
             try {
                 const { data, error } = await supabaseClient
                     .from('propostas')
@@ -109,56 +130,50 @@
                     .order('created_at', { ascending: false });
                 
                 if (error) throw error;
-                propostasLocais = data;
+                listaPropostas = data;
                 
-                select.innerHTML = '<option value="">-- Selecione o Cliente --</option>' + 
+                const select = document.getElementById('selectProposta');
+                select.innerHTML = '<option value="">-- Selecione o Cliente/Carga --</option>' + 
                     data.map(p => `<option value="${p.id}">${p.cliente_nome} (Ref: ${p.id.substring(0,5)})</option>`).join('');
             } catch (error) {
-                select.innerHTML = '<option>Erro ao carregar dados</option>';
+                console.error(error);
             }
         }
 
-        function mostrarDetalhesComercial() {
+        function vincularDadosComerciais() {
             const id = document.getElementById('selectProposta').value;
             const painel = document.getElementById('painelComercial');
-            const prop = propostasLocais.find(p => p.id == id);
+            const p = listaPropostas.find(item => item.id == id);
 
-            if (prop) {
+            if (p) {
                 painel.style.display = 'block';
-                document.getElementById('infoFrete').innerText = `R$ ${Number(prop.valor_frete).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-                document.getElementById('infoVendedor').innerText = prop.vendedor_nome || 'N/I';
-                document.getElementById('infoObs').innerText = prop.mercadoria || 'Sem observações';
+                document.getElementById('infoFrete').innerText = `R$ ${Number(p.valor_frete).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+                document.getElementById('infoVendedor').innerText = p.vendedor_nome || 'N/I';
+                document.getElementById('infoObs').innerText = p.mercadoria || 'Nenhuma observação';
                 
-                // Preenche automático se o comercial já tiver colocado
-                document.getElementById('origem').value = prop.origem || "";
-                document.getElementById('destino').value = prop.destino || "";
+                // Sugere as cidades que o vendedor cadastrou
+                document.getElementById('origem').value = p.origem || "";
+                document.getElementById('destino').value = p.destino || "";
             } else {
                 painel.style.display = 'none';
             }
         }
 
         function toggleBase() {
-            const campo = document.getElementById('campoBase');
-            campo.style.display = (campo.style.display === 'block') ? 'none' : 'block';
+            const div = document.getElementById('campoBase');
+            div.style.display = div.style.display === 'block' ? 'none' : 'block';
         }
 
         function toggleMotoristaExtra() {
-            const bloco = document.getElementById('blocoExtra');
-            const btn = document.getElementById('btnExpandir');
-            if (bloco.style.display === 'none' || bloco.style.display === '') {
-                bloco.style.display = 'block';
-                btn.innerText = "- Remover Segundo Motorista";
-            } else {
-                bloco.style.display = 'none';
-                btn.innerText = "+ Adicionar Segundo Motorista (Entrega)";
-            }
+            const div = document.getElementById('blocoExtra');
+            div.style.display = div.style.display === 'block' ? 'none' : 'block';
         }
 
         async function salvarOperacional() {
             const btn = document.getElementById('btnAcao');
             const msg = document.getElementById('mensagem');
             
-            const payload = {
+            const dados = {
                 proposta_id: document.getElementById('selectProposta').value,
                 origem: document.getElementById('origem').value,
                 base_intermediaria: document.getElementById('base_intermediaria').value || null,
@@ -167,28 +182,28 @@
                 valor_pago_motorista: parseFloat(document.getElementById('valor1').value) || 0,
                 motorista_2_nome: document.getElementById('nomeMotorista2').value || null,
                 valor_pago_motorista_2: parseFloat(document.getElementById('valor2').value) || 0,
-                status_viagem: "Em trânsito",
+                status_viagem: "Iniciada",
                 data_operacao: new Date().toISOString()
             };
 
-            if (!payload.proposta_id || !payload.origem || !payload.destino) {
-                alert("Selecione a carga e defina Origem/Destino!");
+            if (!dados.proposta_id || !dados.origem || !dados.destino) {
+                alert("Dados incompletos! Verifique Carga, Origem e Destino.");
                 return;
             }
 
             btn.disabled = true;
-            msg.innerText = "Registrando...";
+            msg.innerText = "⏳ Gravando dados...";
 
             try {
-                const { error } = await supabaseClient.from('operacoes').insert([payload]);
+                const { error } = await supabaseClient.from('operacoes').insert([dados]);
                 if (error) throw error;
 
                 msg.style.color = "green";
-                msg.innerText = "✅ Operação iniciada com sucesso!";
+                msg.innerText = "✅ Sucesso! Operação vinculada ao financeiro.";
                 setTimeout(() => location.reload(), 2000);
             } catch (error) {
                 msg.style.color = "red";
-                msg.innerText = "Erro: " + error.message;
+                msg.innerText = "Erro ao salvar: " + error.message;
                 btn.disabled = false;
             }
         }
