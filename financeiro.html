@@ -11,26 +11,18 @@
         :root { --primary: #2563eb; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); padding: 20px; margin: 0; }
         .container { max-width: 1100px; margin: auto; }
-        h2 { color: #1e293b; margin-bottom: 20px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
-        
+        h2 { color: #1e293b; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .card-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
         .stat { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
         .stat label { font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
-        .stat div { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-top: 5px; }
-
-        .actions { display: flex; gap: 10px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        th { background: #f1f5f9; padding: 15px; text-align: left; font-size: 0.8rem; color: #475569; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; color: #1e293b; }
-        
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; }
-        .bg-lucro { background: #dcfce7; color: #166534; }
-        .bg-custo { background: #fee2e2; color: #991b1b; }
-        
-        .btn { border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .stat div { font-size: 1.5rem; font-weight: 700; margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
+        th { background: #f1f5f9; padding: 15px; text-align: left; font-size: 0.8rem; color: #475569; }
+        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
+        .btn { border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-excel { background: #166534; color: white; margin-right: 10px; }
         .btn-refresh { background: var(--primary); color: white; }
-        .btn-excel { background: #166534; color: white; }
-        .btn:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -38,31 +30,31 @@
 <div class="container">
     <h2>
         💰 Painel Financeiro 
-        <div class="actions">
+        <div>
             <button class="btn btn-excel" onclick="baixarExcel()">📊 Baixar Excel</button>
             <button class="btn btn-refresh" onclick="carregarFinanceiro()">🔄 Atualizar</button>
         </div>
     </h2>
 
     <div class="card-stats">
-        <div class="stat"><label>Total Recebido</label><div id="totalReceita" style="color: var(--primary)">R$ 0,00</div></div>
-        <div class="stat"><label>Total Pago (Motoristas)</label><div id="totalCustos" style="color: var(--danger)">R$ 0,00</div></div>
-        <div class="stat"><label>Lucro Líquido</label><div id="totalLucro" style="color: var(--success)">R$ 0,00</div></div>
+        <div class="stat"><label>Receita Total</label><div id="totalReceita" style="color: var(--primary)">R$ 0,00</div></div>
+        <div class="stat"><label>Custos (Motoristas)</label><div id="totalCustos" style="color: var(--danger)">R$ 0,00</div></div>
+        <div class="stat"><label>Lucro Real</label><div id="totalLucro" style="color: var(--success)">R$ 0,00</div></div>
     </div>
 
-    <table id="tabelaDados">
+    <table>
         <thead>
             <tr>
                 <th>Cliente / Rota</th>
-                <th>Vendedor</th>
-                <th>Receita (Cliente)</th>
-                <th>Custo (Motoristas)</th>
-                <th>Lucro Líquido</th>
+                <th>Receita</th>
+                <th>Custo Total</th>
+                <th>Lucro</th>
+                <th>Motoristas</th>
                 <th>Status</th>
             </tr>
         </thead>
         <tbody id="tabelaFinanceiro">
-            <tr><td colspan="6" style="text-align:center">Carregando informações...</td></tr>
+            <tr><td colspan="6" style="text-align:center">Buscando dados no servidor...</td></tr>
         </tbody>
     </table>
 </div>
@@ -73,86 +65,77 @@
 
     async function carregarFinanceiro() {
         try {
+            // BUSCA PROPOSTA + OPERACAO (mesmo que a operacao ainda não exista)
             const { data, error } = await supabaseClient
                 .from('propostas')
                 .select(`
-                    id,
-                    cliente_nome,
-                    vendedor_nome,
-                    valor_frete_cliente,
-                    cidade_origem,
-                    cidade_destino,
-                    status,
-                    operacoes (
-                        motorista_1,
-                        valor_m1,
-                        motorista_2,
-                        valor_m2
-                    )
-                `);
+                    *,
+                    operacoes (*)
+                `)
+                .order('created_at', { ascending: false });
 
             if (error) throw error;
 
             let html = '';
             let somaReceita = 0;
             let somaCustos = 0;
-            dadosParaExcel = []; // Limpa a lista para o novo Excel
+            dadosParaExcel = [];
 
             data.forEach(item => {
-                const custoM1 = item.operacoes?.[0]?.valor_m1 || 0;
-                const custoM2 = item.operacoes?.[0]?.valor_m2 || 0;
-                const custoTotal = custoM1 + custoM2;
+                // Pegamos a primeira operação vinculada (se houver)
+                const op = item.operacoes && item.operacoes.length > 0 ? item.operacoes[0] : null;
+                
+                const custoTotal = (op?.valor_m1 || 0) + (op?.valor_m2 || 0);
                 const receita = item.valor_frete_cliente || 0;
                 const lucro = receita - custoTotal;
 
                 somaReceita += receita;
                 somaCustos += custoTotal;
 
-                // Prepara dados para o Excel
+                const nomesMotoristas = op ? `${op.motorista_1 || ''} ${op.motorista_2 ? '/ ' + op.motorista_2 : ''}` : '---';
+
                 dadosParaExcel.push({
                     "Cliente": item.cliente_nome,
                     "Vendedor": item.vendedor_nome,
-                    "Origem": item.cidade_origem,
-                    "Destino": item.cidade_destino,
                     "Receita": receita,
-                    "Custo Motoristas": custoTotal,
+                    "Custo": custoTotal,
                     "Lucro": lucro,
-                    "Status": custoTotal > 0 ? 'Em Operação' : 'Pendente'
+                    "Motoristas": nomesMotoristas
                 });
 
                 html += `
                     <tr>
                         <td><strong>${item.cliente_nome}</strong><br><small>${item.cidade_origem} ➔ ${item.cidade_destino}</small></td>
-                        <td>${item.vendedor_nome || '---'}</td>
-                        <td>R$ ${receita.toLocaleString('pt-BR')}</td>
-                        <td style="color: var(--danger)">R$ ${custoTotal.toLocaleString('pt-BR')}</td>
-                        <td style="font-weight: bold; color: ${lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">R$ ${lucro.toLocaleString('pt-BR')}</td>
-                        <td><span class="badge ${custoTotal > 0 ? 'bg-lucro' : 'bg-custo'}">${custoTotal > 0 ? 'Em Operação' : 'Pendente'}</span></td>
+                        <td>R$ ${receita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                        <td style="color: var(--danger)">R$ ${custoTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                        <td style="font-weight: bold; color: ${lucro >= 0 ? 'var(--success)' : 'var(--danger)'}">
+                            R$ ${lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                        </td>
+                        <td><small>${nomesMotoristas}</small></td>
+                        <td>
+                            <span class="badge" style="background: ${op ? '#dcfce7' : '#f1f5f9'}; color: ${op ? '#166534' : '#64748b'}">
+                                ${op ? 'Operacional OK' : 'Pend. Operac.'}
+                            </span>
+                        </td>
                     </tr>
                 `;
             });
 
             document.getElementById('tabelaFinanceiro').innerHTML = html;
-            document.getElementById('totalReceita').innerText = `R$ ${somaReceita.toLocaleString('pt-BR')}`;
-            document.getElementById('totalCustos').innerText = `R$ ${somaCustos.toLocaleString('pt-BR')}`;
-            document.getElementById('totalLucro').innerText = `R$ ${(somaReceita - somaCustos).toLocaleString('pt-BR')}`;
+            document.getElementById('totalReceita').innerText = `R$ ${somaReceita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('totalCustos').innerText = `R$ ${somaCustos.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('totalLucro').innerText = `R$ ${(somaReceita - somaCustos).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
 
         } catch (e) {
-            alert("Erro ao carregar dados: " + e.message);
+            document.getElementById('tabelaFinanceiro').innerHTML = `<tr><td colspan="6">Erro: ${e.message}</td></tr>`;
         }
     }
 
     function baixarExcel() {
-        if (dadosParaExcel.length === 0) return alert("Não há dados para exportar!");
-
-        // Criar uma nova planilha
         const worksheet = XLSX.utils.json_to_sheet(dadosParaExcel);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Relatorio Mensal");
-
-        // Gerar o arquivo e baixar
-        const dataAtual = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-        XLSX.writeFile(workbook, `Relatorio_Financeiro_Jobren_${dataAtual}.xlsx`);
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Financeiro");
+        XLSX.writeFile(workbook, `Financeiro_Jobren.xlsx`);
     }
 
     window.onload = carregarFinanceiro;
