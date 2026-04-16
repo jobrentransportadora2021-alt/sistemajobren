@@ -9,21 +9,23 @@
     <style>
         :root { --primary: #2563eb; --bg: #f8fafc; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
-        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 100%; max-width: 500px; border: 1px solid #e2e8f0; }
+        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 100%; max-width: 550px; border: 1px solid #e2e8f0; }
         h2 { color: #1e293b; text-align: center; margin-bottom: 25px; font-weight: 700; }
+        
         .upload-area { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; margin-bottom: 20px; background: #fdfdfd; }
         #preview { width: 100%; max-height: 150px; object-fit: contain; border-radius: 8px; display: none; margin-top: 10px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .full { grid-column: span 2; }
-        label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 5px; color: #475569; text-transform: uppercase; }
-        input, textarea, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; font-family: inherit; font-size: 0.95rem; margin-bottom: 15px; }
-        textarea { resize: none; height: 80px; }
-        /* Destaque para o campo de pagamento */
+        
+        label { display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 5px; color: #475569; text-transform: uppercase; }
+        input, textarea, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; font-family: inherit; font-size: 0.95rem; }
+        
+        .rota-box { background: #f1f5f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
         .pgto-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .operacional-box { background: #fff7ed; border: 1px solid #fed7aa; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        button { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        
+        button { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         button:hover { background: #1d4ed8; }
-        button:disabled { background: #94a3b8; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -31,7 +33,7 @@
         <h2>🛒 Registro Comercial</h2>
         
         <div class="upload-area" onclick="document.getElementById('foto').click()">
-            <span id="upload-label">📸 Clique para Foto da Mercadoria</span>
+            <span id="upload-label">📸 Foto da Mercadoria (Opcional)</span>
             <input type="file" id="foto" accept="image/*" style="display:none" onchange="previewImage(this)">
             <img id="preview">
         </div>
@@ -39,49 +41,66 @@
         <div class="grid">
             <div class="full">
                 <label>Vendedor(a)</label>
-                <input type="text" id="vendedor" placeholder="Nome do responsável">
+                <input type="text" id="vendedor" placeholder="Seu nome">
             </div>
             <div class="full">
                 <label>Cliente / Razão Social</label>
-                <input type="text" id="cliente" placeholder="Ex: Lorenzetti S.A.">
+                <input type="text" id="cliente" placeholder="Nome da empresa cliente">
+            </div>
+
+            <div class="full rota-box">
+                <label style="color: #2563eb; margin-bottom: 10px; display: block;">📍 Origem da Carga</label>
+                <div class="grid">
+                    <div>
+                        <select id="estadoOrigem" onchange="carregarCidades(this.value, 'cidadeOrigem')">
+                            <option value="">UF</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="cidadeOrigem" disabled>
+                            <option value="">Cidade</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <label style="color: #2563eb; margin-top: 15px; margin-bottom: 10px; display: block;">🏁 Destino da Carga</label>
+                <div class="grid">
+                    <div>
+                        <select id="estadoDestino" onchange="carregarCidades(this.value, 'cidadeDestino')">
+                            <option value="">UF</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="cidadeDestino" disabled>
+                            <option value="">Cidade</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <div class="full pgto-box">
-                <label style="color: #1e40af;">💳 Forma de Pagamento</label>
+                <label>💳 Pagamento do Cliente</label>
                 <select id="forma_pagamento">
-                    <option value="" disabled selected>Selecione...</option>
                     <option value="Pix">Pix</option>
-                    <option value="Cartão de Crédito">Cartão de Crédito/Débito </option>
+                    <option value="Cartão de Crédito">Cartão de Crédito</option>
                     <option value="Boleto">Boleto</option>
+                    <option value="Faturado">Faturado</option>
                 </select>
-            </div>
-
-            <div>
-                <label>📍 Origem</label>
-                <input type="text" id="origem" placeholder="Ex: São Paulo/SP">
-            </div>
-            <div>
-                <label>🏁 Destino</label>
-                <input type="text" id="destino" placeholder="Ex: Salvador/BA">
             </div>
 
             <div class="full">
                 <label>Descrição da Carga</label>
-                <textarea id="descricao" placeholder="Ex: 20 pallets de chuveiros..."></textarea>
+                <textarea id="descricao" placeholder="Ex: 15 pallets, 3000kg..."></textarea>
             </div>
-            <div>
-                <label>Valor Mercadoria</label>
-                <input type="number" id="vlr_merca" placeholder="0.00">
-            </div>
-            <div>
-                <label>Frete Cliente</label>
-                <input type="number" id="vlr_frete" placeholder="0.00">
-            </div>
-        </div>
 
-        <div class="operacional-box">
-            <label style="color: #9a3412;">💰 Sugestão p/ Gasto Operacional</label>
-            <input type="number" id="vlr_sugerido_operacional" placeholder="Limite p/ motoristas">
+            <div>
+                <label>Valor do Frete (R$)</label>
+                <input type="number" id="vlr_frete" placeholder="Ex: 2500.00">
+            </div>
+            <div>
+                <label>Sugestão Gasto (R$)</label>
+                <input type="number" id="vlr_sugestao" placeholder="Ex: 1800.00">
+            </div>
         </div>
         
         <button id="btnSalvar" onclick="salvarProposta()">Enviar para Operacional 🚀</button>
@@ -90,15 +109,40 @@
 
     <script src="config.js"></script>
     <script>
+        // 1. Carregar Estados da API do IBGE
+        async function carregarEstados() {
+            try {
+                const response = await fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome");
+                const estados = await response.json();
+                const options = estados.map(e => `<option value="${e.sigla}">${e.sigla} - ${e.nome}</option>`).join('');
+                document.getElementById('estadoOrigem').innerHTML += options;
+                document.getElementById('estadoDestino').innerHTML += options;
+            } catch (e) { console.error("Erro ao carregar estados"); }
+        }
+
+        // 2. Carregar Cidades da API do IBGE
+        async function carregarCidades(uf, selectId) {
+            const select = document.getElementById(selectId);
+            if (!uf) { select.disabled = true; return; }
+            
+            select.disabled = false;
+            select.innerHTML = '<option>Carregando...</option>';
+            
+            try {
+                const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`);
+                const cidades = await response.json();
+                select.innerHTML = cidades.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+            } catch (e) { select.innerHTML = '<option>Erro</option>'; }
+        }
+
         function previewImage(input) {
             const preview = document.getElementById('preview');
-            const label = document.getElementById('upload-label');
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = e => {
                     preview.src = e.target.result;
                     preview.style.display = 'block';
-                    label.style.display = 'none';
+                    document.getElementById('upload-label').style.display = 'none';
                 }
                 reader.readAsDataURL(input.files[0]);
             }
@@ -107,67 +151,58 @@
         async function salvarProposta() {
             const btn = document.getElementById('btnSalvar');
             const file = document.getElementById('foto').files[0];
-            const formaPgto = document.getElementById('forma_pagamento').value;
             let publicUrl = "";
 
-            // Validações básicas
-            if (!document.getElementById('cliente').value || !formaPgto) {
-                return alert("Por favor, preencha o Cliente e a Forma de Pagamento.");
+            // Coleta de dados
+            const dados = {
+                vendedor_nome: document.getElementById('vendedor').value,
+                cliente_nome: document.getElementById('cliente').value,
+                estado_origem: document.getElementById('estadoOrigem').value,
+                cidade_origem: document.getElementById('cidadeOrigem').value,
+                estado_destino: document.getElementById('estadoDestino').value,
+                cidade_destino: document.getElementById('cidadeDestino').value,
+                forma_pagamento: document.getElementById('forma_pagamento').value,
+                descricao_mercadoria: document.getElementById('descricao').value,
+                valor_frete_cliente: parseFloat(document.getElementById('vlr_frete').value) || 0,
+                valor_sugerido_operacional: parseFloat(document.getElementById('vlr_sugestao').value) || 0,
+                status: 'pendente'
+            };
+
+            if (!dados.cliente_nome || !dados.cidade_origem || !dados.cidade_destino) {
+                return alert("Preencha Cliente, Origem e Destino!");
             }
 
-            const v_merca = parseFloat(document.getElementById('vlr_merca').value) || 0;
-            const v_frete = parseFloat(document.getElementById('vlr_frete').value) || 0;
-            const v_sugestao = parseFloat(document.getElementById('vlr_sugerido_operacional').value) || 0;
-            const origem = document.getElementById('origem').value;
-            const destino = document.getElementById('destino').value;
-
             btn.disabled = true;
-            btn.innerHTML = "Processando...";
+            btn.innerHTML = "Salvando...";
 
             try {
-                // 1. Upload da foto (se houver)
+                // Upload Foto
                 if (file) {
                     const fileName = `${Date.now()}_carga.jpg`;
-                    const { data: uploadData, error: uploadError } = await supabaseClient.storage
-                        .from('mercadorias')
-                        .upload(fileName, file);
-
-                    if (uploadError) throw uploadError;
-
-                    const { data: urlData } = supabaseClient.storage
-                        .from('mercadorias')
-                        .getPublicUrl(fileName);
-                    publicUrl = urlData.publicUrl;
+                    await supabaseClient.storage.from('mercadorias').upload(fileName, file);
+                    const { data } = supabaseClient.storage.from('mercadorias').getPublicUrl(fileName);
+                    publicUrl = data.publicUrl;
                 }
 
-                // 2. Inserção no Supabase (Incluindo forma_pagamento)
-                const { error: dbError } = await supabaseClient.from('propostas').insert([{
-                    vendedor_nome: document.getElementById('vendedor').value || "Não informado",
-                    cliente_nome: document.getElementById('cliente').value,
-                    forma_pagamento: formaPgto, // Dado adicionado aqui
-                    origem: origem,
-                    destino: destino,
-                    descricao_mercadoria: document.getElementById('descricao').value || "",
-                    valor_mercadoria: v_merca,
-                    valor_frete_cliente: v_frete,
-                    valor_sugerido_operacional: v_sugestao,
-                    foto_url: publicUrl,
-                    status: 'pendente'
+                // Salvar no Banco
+                const { error } = await supabaseClient.from('propostas').insert([{
+                    ...dados,
+                    foto_url: publicUrl
                 }]);
 
-                if (dbError) throw dbError;
+                if (error) throw error;
 
-                alert("✅ Carga registrada e enviada!");
+                alert("✅ Sucesso! O operacional já pode visualizar.");
                 location.reload();
-
             } catch (err) {
-                alert("Erro ao salvar: " + err.message);
+                alert("Erro: " + err.message);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = "Enviar para Operacional 🚀";
             }
         }
 
+        window.onload = carregarEstados;
         function logout() { localStorage.clear(); window.location.href = 'index.html'; }
     </script>
 </body>
