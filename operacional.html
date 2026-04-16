@@ -30,6 +30,12 @@
             </select>
         </div>
 
+        <div class="form-group" style="background: #fdf2f8; border-color: #fbcfe8;">
+            <label>📍 Rota da Operação:</label>
+            <input type="text" id="origem" placeholder="Cidade de Origem">
+            <input type="text" id="destino" placeholder="Cidade de Destino">
+        </div>
+
         <div class="form-group" style="background: #eff6ff;">
             <label>👤 Motorista (Coleta):</label>
             <input type="text" id="nomeMotorista1" placeholder="Nome do motorista">
@@ -46,7 +52,7 @@
             <input type="number" id="valor2" step="0.01" placeholder="Ex: 500.00">
         </div>
 
-        <button onclick="salvarOperacional()" id="btnAcao" class="btn-salvar">Finalizar e Somar Custos</button>
+        <button onclick="salvarOperacional()" id="btnAcao" class="btn-salvar">Finalizar e Registrar</button>
         <div id="mensagem"></div>
     </div>
 
@@ -88,30 +94,36 @@
             const btn = document.getElementById('btnAcao');
             const msg = document.getElementById('mensagem');
             
+            // Captura de valores
             const propostaId = document.getElementById('selectProposta').value;
+            const origemVal = document.getElementById('origem').value;
+            const destinoVal = document.getElementById('destino').value;
+            const motorista1 = document.getElementById('nomeMotorista1').value;
             const valor1 = parseFloat(document.getElementById('valor1').value) || 0;
             const valor2 = parseFloat(document.getElementById('valor2').value) || 0;
             
-            // Validação de entrada
-            if (!propostaId || valor1 <= 0) {
-                alert("Selecione a carga e informe pelo menos o valor do primeiro motorista!");
+            // Validação básica para evitar erros
+            if (!propostaId || !origemVal || !destinoVal || valor1 <= 0) {
+                alert("Preencha a Carga, Origem, Destino e o Valor do Motorista!");
                 return;
             }
 
             const valorTotalCusto = valor1 + valor2;
             btn.disabled = true;
             msg.style.color = "#2563eb";
-            msg.innerText = "Processando registro...";
+            msg.innerText = "Salvando no sistema...";
 
             try {
-                // Aqui enviamos os dados. 
-                // Se o erro 23502 persistir, verifique se há colunas NOT NULL no Supabase
+                // Inserção com todos os campos obrigatórios identificados no seu erro
                 const { error } = await supabaseClient
                     .from('operacoes')
                     .insert([
                         {
                             proposta_id: propostaId,
-                            valor_pago_motorista: valorTotalCusto
+                            origem: origemVal,
+                            destino: destinoVal,
+                            valor_pago_motorista: valorTotalCusto,
+                            status: "em_transito" // Campo padrão para evitar null
                         }
                     ]);
 
@@ -122,6 +134,8 @@
                 msg.innerText = `✅ Sucesso! R$ ${valorTotalCusto.toFixed(2)} registrado.`;
                 
                 // Limpeza dos campos
+                document.getElementById('origem').value = "";
+                document.getElementById('destino').value = "";
                 document.getElementById('valor1').value = "";
                 document.getElementById('valor2').value = "";
                 document.getElementById('nomeMotorista1').value = "";
@@ -130,20 +144,12 @@
                 document.getElementById('blocoExtra').style.display = 'none';
                 document.getElementById('btnExpandir').innerText = "+ Adicionar Segundo Motorista (Entrega)";
 
-                // Recarrega a lista para garantir sincronia
                 carregarPropostas();
 
             } catch (error) {
-                console.error("Erro detalhado do Supabase:", error);
+                console.error("Erro detalhado:", error);
                 msg.style.color = "red";
-                
-                if (error.code === "23502") {
-                    msg.innerText = "Erro: Coluna obrigatória faltando no banco (verifique campos NOT NULL).";
-                } else if (error.code === "23503") {
-                    msg.innerText = "Erro: Essa proposta não existe mais no sistema.";
-                } else {
-                    msg.innerText = "Erro ao salvar: " + error.message;
-                }
+                msg.innerText = "Erro: " + error.message;
             } finally {
                 btn.disabled = false;
             }
