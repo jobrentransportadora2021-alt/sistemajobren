@@ -28,9 +28,27 @@
             background: white; padding: 20px; border-radius: 15px; 
             border-left: 10px solid #2563eb; margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
         }
         
-        .header-info { display: flex; justify-content: space-between; align-items: flex-start; }
+        /* Estilo do Botão Excluir */
+        .btn-excluir {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .btn-excluir:hover { background: #dc2626; color: white; }
+
+        .header-info { display: flex; justify-content: space-between; align-items: flex-start; padding-right: 80px; }
         .vendedor-tag { background: #e2e8f0; color: #475569; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; margin-top: 4px; display: inline-block; }
 
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
@@ -89,6 +107,27 @@
             }
         }
 
+        // FUNÇÃO PARA EXCLUIR REGISTRO
+        async function removerProposta(id) {
+            const confirmar = confirm("⚠️ ATENÇÃO: Deseja realmente excluir este registro financeiro? Esta ação não pode ser desfeita.");
+            
+            if (!confirmar) return;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('financeiro_consolidado')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                alert("Registro removido com sucesso!");
+                carregarDados(); // Recarrega a lista automaticamente
+            } catch (err) {
+                alert("Erro ao excluir: " + err.message);
+            }
+        }
+
         function renderizarCards(dados) {
             const container = document.getElementById('lista');
             if (dados.length === 0) {
@@ -103,13 +142,14 @@
                 const formaPgto = item.forma_pagamento || 'Não informado';
                 const vendedor = item.vendedor_nome || 'N/I';
                 
-                // Lógica de cores para o badge de pagamento
                 let classePgto = 'padrao';
                 if(formaPgto.toLowerCase().includes('pix')) classePgto = 'pix';
                 else if(formaPgto.toLowerCase().includes('cartão')) classePgto = 'cartao';
 
                 return `
                     <div class="card">
+                        <button class="btn-excluir" onclick="removerProposta('${item.id}')">🗑️ Excluir</button>
+
                         <div class="header-info">
                             <div>
                                 <span style="font-weight:bold; font-size:1.1rem; display:block;">👤 ${item.cliente_nome || 'Sem vínculo'}</span>
@@ -117,7 +157,7 @@
                                 <br>
                                 <span class="pagamento-badge ${classePgto}">💳 ${formaPgto}</span>
                             </div>
-                            <small style="color:#94a3b8">#${item.id || ''}</small>
+                            <small style="color:#94a3b8">Ref: ${item.id.substring(0,8)}...</small>
                         </div>
 
                         <div class="grid">
@@ -144,7 +184,6 @@
             }).join('');
         }
 
-        // Filtro aprimorado para Cliente, Vendedor e Pagamento
         document.getElementById('filtroGeral').addEventListener('input', (e) => {
             const termo = e.target.value.toLowerCase();
             const filtrados = dadosLocais.filter(item => {
