@@ -106,26 +106,25 @@
             }
         }
 
-        // FUNÇÃO CORRIGIDA: APAGA DA TABELA REAL 'OPERACOES'
         async function removerProposta(id) {
-            const confirmar = confirm("⚠️ ATENÇÃO: Deseja realmente excluir este registro operacional? Isso removerá o custo deste financeiro definitivamente.");
+            const confirmar = confirm("⚠️ Deseja excluir este registro? \n\nIsso removerá os dados da tabela de OPERAÇÕES.");
             
             if (!confirmar) return;
 
             try {
-                // Aqui está o segredo: deletamos de 'operacoes' usando o ID que vem da view
-                const { error } = await supabaseClient
+                // Tenta apagar na tabela operacoes
+                const { error: errOp } = await supabaseClient
                     .from('operacoes')
                     .delete()
                     .eq('id', id);
 
-                if (error) throw error;
+                if (errOp) throw errOp;
 
                 alert("Registro removido com sucesso!");
                 carregarDados(); 
             } catch (err) {
-                console.error(err);
-                alert("Erro ao excluir: " + err.message);
+                console.error("Erro ao excluir:", err);
+                alert("Não foi possível excluir. Verifique se o ID pertence à tabela 'operacoes'. Erro: " + err.message);
             }
         }
 
@@ -141,7 +140,6 @@
                 const custo = Number(item.custo_operacional || 0);
                 const lucro = Number(item.lucro_liquido || (receita - custo));
                 const formaPgto = item.forma_pagamento || 'Não informado';
-                const vendedor = item.vendedor_nome || 'N/I';
                 
                 let classePgto = 'padrao';
                 if(formaPgto.toLowerCase().includes('pix')) classePgto = 'pix';
@@ -154,11 +152,11 @@
                         <div class="header-info">
                             <div>
                                 <span style="font-weight:bold; font-size:1.1rem; display:block;">👤 ${item.cliente_nome || 'Sem vínculo'}</span>
-                                <span class="vendedor-tag">🤝 Vendedor: ${vendedor}</span>
+                                <span class="vendedor-tag">🤝 Vendedor: ${item.vendedor_nome || 'N/I'}</span>
                                 <br>
                                 <span class="pagamento-badge ${classePgto}">💳 ${formaPgto}</span>
                             </div>
-                            <small style="color:#94a3b8">Ref: ${item.id.substring(0,8)}...</small>
+                            <small style="color:#94a3b8">Ref ID: ${item.id}</small>
                         </div>
 
                         <div class="grid">
