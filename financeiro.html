@@ -12,28 +12,23 @@
         body { font-family: 'Inter', sans-serif; background: var(--bg); padding: 20px; margin: 0; }
         .container { max-width: 1600px; margin: auto; }
         .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        
         .filters { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; gap: 15px; align-items: flex-end; margin-bottom: 25px; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .field { display: flex; flex-direction: column; gap: 5px; }
         .field label { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
         input, select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; min-width: 140px; }
-
         .card-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
         .stat { background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
         .stat label { font-size: 0.75rem; color: #64748b; font-weight: 600; }
         .stat div { font-size: 1.3rem; font-weight: 700; margin-top: 5px; }
-
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
         th { background: #f1f5f9; padding: 15px; text-align: left; font-size: 0.7rem; color: #475569; text-transform: uppercase; }
         td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
-        
         .btn-group { display: flex; gap: 5px; }
         .btn-confirma { border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: bold; transition: 0.2s; }
         .confirmado { background: var(--success); color: white; cursor: default; }
         .pendente { background: #e2e8f0; color: #475569; }
-        
         .badge-forma { background: #e0e7ff; color: #4338ca; padding: 3px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
-        .btn-excel { background: #166534; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-excel { background: #166534; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
     </style>
 </head>
 <body>
@@ -41,7 +36,7 @@
 <div class="container">
     <div class="header-flex">
         <h2>💰 Financeiro Profissional Jobren</h2>
-        <button class="btn-excel" onclick="baixarExcel()">📊 Exportar Excel Premium</button>
+        <button class="btn-excel" onclick="baixarExcel()">📊 Exportar Relatório Master</button>
     </div>
 
     <div class="filters">
@@ -57,7 +52,7 @@
                 <option value="cartao">CARTÃO</option>
             </select>
         </div>
-        <button class="btn-confirma confirmado" style="padding: 10px 20px;" onclick="carregarFinanceiro()">🔍 Filtrar</button>
+        <button class="btn-confirma confirmado" style="padding: 10px 20px;" onclick="carregarFinanceiro()">🔍 Filtrar Dados</button>
     </div>
 
     <div class="card-stats">
@@ -76,8 +71,8 @@
                 <th>Forma</th>
                 <th>Receita</th>
                 <th>Gasto</th>
-                <th>Confirmação</th>
-                <th>Status Final</th>
+                <th>Ações</th>
+                <th>Status Real</th>
             </tr>
         </thead>
         <tbody id="tabelaFinanceiro"></tbody>
@@ -86,9 +81,9 @@
 
 <script src="config.js"></script>
 <script>
-    let dadosParaExcel = [];
+    let dadosBrutosParaRelatorio = [];
     let vendedoresUnicos = new Set();
-    let globais = { receita: 0, gasto: 0, lucro: 0 };
+    let totaisGlobais = { receita: 0, gasto: 0, pago: 0 };
 
     async function carregarFinanceiro() {
         const dInic = document.getElementById('dataInicio').value;
@@ -97,15 +92,9 @@
         const formaFiltro = document.getElementById('filtroForma').value;
 
         try {
-            // Ajustado para os nomes de colunas que você usa no banco: motorista_1 e motorista_2
             let query = supabaseClient.from('propostas').select(`
                 *, 
-                operacoes (
-                    valor_m1, 
-                    valor_m2, 
-                    motorista_1, 
-                    motorista_2
-                )
+                operacoes (valor_m1, valor_m2, motorista_1, motorista_2)
             `).order('created_at', { ascending: false });
 
             if (dInic) query = query.gte('created_at', dInic + 'T00:00:00');
@@ -117,7 +106,7 @@
             if (error) throw error;
 
             let html = '', sReceita = 0, sPagoReal = 0, sGasto = 0;
-            dadosParaExcel = [];
+            dadosBrutosParaRelatorio = data; 
 
             data.forEach(item => {
                 if (item.vendedor_nome) vendedoresUnicos.add(item.vendedor_nome);
@@ -125,8 +114,6 @@
                 const receita = item.valor_frete_cliente || 0;
                 const op = item.operacoes?.[0] || null;
                 const gasto = (op?.valor_m1 || 0) + (op?.valor_m2 || 0);
-                
-                // Pegando os nomes dos motoristas conforme sua tabela
                 const mot1 = op?.motorista_1 || '-';
                 const mot2 = op?.motorista_2 || '';
                 const motoristasFormatado = mot2 ? `${mot1} / ${mot2}` : mot1;
@@ -152,19 +139,6 @@
                 sGasto += gasto;
                 sPagoReal += recebidoLinha;
 
-                dadosParaExcel.push({
-                    "DATA": new Date(item.created_at).toLocaleDateString('pt-BR'),
-                    "VENDEDOR": item.vendedor_nome || '-',
-                    "CLIENTE": item.cliente_nome,
-                    "MOTORISTAS": motoristasFormatado,
-                    "FORMA": forma.toUpperCase(),
-                    "RECEITA (R$)": receita,
-                    "GASTO (R$)": gasto,
-                    "LUCRO (R$)": (receita - gasto),
-                    "RECEBIDO (R$)": recebidoLinha,
-                    "STATUS": recebidoLinha >= receita ? "TOTAL PAGO" : (recebidoLinha > 0 ? "PARCIAL" : "PENDENTE")
-                });
-
                 html += `
                     <tr>
                         <td><small>${new Date(item.created_at).toLocaleDateString('pt-BR')}</small></td>
@@ -178,20 +152,20 @@
                     </tr>`;
             });
 
-            globais = { receita: sReceita, gasto: sGasto, lucro: (sReceita - sGasto) };
+            totaisGlobais = { receita: sReceita, gasto: sGasto, pago: sPagoReal };
 
             document.getElementById('tabelaFinanceiro').innerHTML = html;
-            document.getElementById('totalReceita').innerText = `R$ ${sReceita.toLocaleString('pt-BR')}`;
-            document.getElementById('totalGasto').innerText = `R$ ${sGasto.toLocaleString('pt-BR')}`;
-            document.getElementById('totalPago').innerText = `R$ ${sPagoReal.toLocaleString('pt-BR')}`;
-            document.getElementById('totalLucro').innerText = `R$ ${(sReceita - sGasto).toLocaleString('pt-BR')}`;
+            document.getElementById('totalReceita').innerText = `R$ ${sReceita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('totalGasto').innerText = `R$ ${sGasto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('totalPago').innerText = `R$ ${sPagoReal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+            document.getElementById('totalLucro').innerText = `R$ ${(sReceita - sGasto).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
             
             atualizarListaVendedores();
         } catch (e) { console.error(e); }
     }
 
     async function confirmar(id, campo, jaPago) {
-        if (jaPago || !confirm("Confirmar recebimento?")) return;
+        if (jaPago || !confirm("Confirmar recebimento financeiro?")) return;
         await supabaseClient.from('propostas').update({ [campo]: true }).eq('id', id);
         carregarFinanceiro();
     }
@@ -206,13 +180,63 @@
     }
 
     function baixarExcel() {
-        if (dadosParaExcel.length === 0) return alert("Sem dados para exportar.");
-        const linhaVazia = {};
-        const totais = { "DATA": "TOTAL", "RECEITA (R$)": globais.receita, "GASTO (R$)": globais.gasto, "LUCRO (R$)": globais.lucro };
-        const ws = XLSX.utils.json_to_sheet([...dadosParaExcel, linhaVazia, totais]);
+        if (dadosBrutosParaRelatorio.length === 0) return alert("Não há dados para exportar.");
+
+        // Criando a estrutura de dados profissional para o Excel
+        const rows = dadosBrutosParaRelatorio.map(item => {
+            const op = item.operacoes?.[0] || {};
+            const receita = item.valor_frete_cliente || 0;
+            const gasto = (op.valor_m1 || 0) + (op.valor_m2 || 0);
+            const forma = (item.forma_pagamento || '').toUpperCase();
+            
+            let recebido = 0;
+            if (forma.includes('PIX')) {
+                if (item.pago_70) recebido += (receita * 0.7);
+                if (item.pago_30) recebido += (receita * 0.3);
+            } else if (item.pago_cliente) {
+                recebido = receita;
+            }
+
+            return {
+                "DATA": new Date(item.created_at).toLocaleDateString('pt-BR'),
+                "VENDEDOR": item.vendedor_nome || '-',
+                "CLIENTE": item.cliente_nome,
+                "MOTORISTAS": (op.motorista_1 || '-') + (op.motorista_2 ? ' / ' + op.motorista_2 : ''),
+                "FORMA": forma,
+                "VALOR FRETE (R$)": receita,
+                "CUSTO MOTORISTAS (R$)": gasto,
+                "LUCRO BRUTO (R$)": receita - gasto,
+                "VALOR RECEBIDO (R$)": recebido,
+                "STATUS FINANCEIRO": recebido >= receita ? "PAGO" : (recebido > 0 ? "PARCIAL" : "PENDENTE")
+            };
+        });
+
+        // Adiciona linha de separação e totais
+        rows.push({}); 
+        rows.push({
+            "DATA": "RESUMO GERAL",
+            "VALOR FRETE (R$)": totaisGlobais.receita,
+            "CUSTO MOTORISTAS (R$)": totaisGlobais.gasto,
+            "LUCRO BRUTO (R$)": totaisGlobais.receita - totaisGlobais.gasto,
+            "VALOR RECEBIDO (R$)": totaisGlobais.pago
+        });
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+
+        // Estilo das Colunas (Largura Automática Profissional)
+        const colWidths = [
+            { wch: 12 }, { wch: 15 }, { wch: 30 }, { wch: 35 }, 
+            { wch: 15 }, { wch: 18 }, { wch: 22 }, { wch: 18 }, 
+            { wch: 20 }, { wch: 20 }
+        ];
+        ws['!cols'] = colWidths;
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
-        XLSX.writeFile(wb, `Financeiro_Jobren.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "Relatório Financeiro");
+
+        // Download com nome datado
+        const dataHoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+        XLSX.writeFile(wb, `Relatorio_Jobren_Master_${dataHoje}.xlsx`);
     }
 
     window.onload = () => {
