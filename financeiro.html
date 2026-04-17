@@ -72,11 +72,11 @@
             <tr>
                 <th>Data</th>
                 <th>Vendedor</th>
-                <th>Cliente / Rota</th>
+                <th>Cliente / Motorista</th>
                 <th>Forma</th>
                 <th>Receita</th>
                 <th>Gasto</th>
-                <th>Confirmação Recebimento</th>
+                <th>Confirmação</th>
                 <th>Status Final</th>
             </tr>
         </thead>
@@ -97,7 +97,16 @@
         const formaFiltro = document.getElementById('filtroForma').value;
 
         try {
-            let query = supabaseClient.from('propostas').select(`*, operacoes!fk_vinculo_final (*)`).order('created_at', { ascending: false });
+            // QUERY ATUALIZADA: Puxando nomes dos motoristas da relação operacoes
+            let query = supabaseClient.from('propostas').select(`
+                *, 
+                operacoes!fk_vinculo_final (
+                    valor_m1, 
+                    valor_m2, 
+                    motorista_m1_nome, 
+                    motorista_m2_nome
+                )
+            `).order('created_at', { ascending: false });
 
             if (dInic) query = query.gte('created_at', dInic + 'T00:00:00');
             if (dFim) query = query.lte('created_at', dFim + 'T23:59:59');
@@ -116,8 +125,13 @@
                 const receita = item.valor_frete_cliente || 0;
                 const op = item.operacoes?.[0] || null;
                 const gasto = (op?.valor_m1 || 0) + (op?.valor_m2 || 0);
-                const forma = (item.forma_pagamento || '').toLowerCase();
                 
+                // Formatação dos motoristas para exibição e Excel
+                const mot1 = op?.motorista_m1_nome || '-';
+                const mot2 = op?.motorista_m2_nome || '';
+                const motoristasFormatado = mot2 ? `${mot1} / ${mot2}` : mot1;
+
+                const forma = (item.forma_pagamento || '').toLowerCase();
                 let recebidoLinha = 0;
                 let botoesHTML = '';
 
@@ -142,99 +156,8 @@
                     "DATA": new Date(item.created_at).toLocaleDateString('pt-BR'),
                     "VENDEDOR": item.vendedor_nome || '-',
                     "CLIENTE": item.cliente_nome,
+                    "MOTORISTAS": motoristasFormatado,
                     "FORMA": forma.toUpperCase(),
                     "RECEITA (R$)": receita,
                     "GASTO (R$)": gasto,
                     "LUCRO (R$)": (receita - gasto),
-                    "RECEBIDO (R$)": recebidoLinha,
-                    "STATUS": recebidoLinha >= receita ? "TOTAL PAGO" : (recebidoLinha > 0 ? "PARCIAL" : "PENDENTE")
-                });
-
-                html += `
-                    <tr>
-                        <td><small>${new Date(item.created_at).toLocaleDateString('pt-BR')}</small></td>
-                        <td>${item.vendedor_nome || '-'}</td>
-                        <td><strong>${item.cliente_nome}</strong></td>
-                        <td><span class="badge-forma">${forma.toUpperCase()}</span></td>
-                        <td>R$ ${receita.toLocaleString('pt-BR')}</td>
-                        <td style="color:var(--danger)">R$ ${gasto.toLocaleString('pt-BR')}</td>
-                        <td>${botoesHTML}</td>
-                        <td style="font-weight:bold; color:var(--success)">R$ ${recebidoLinha.toLocaleString('pt-BR')}</td>
-                    </tr>`;
-            });
-
-            globais = { receita: sReceita, gasto: sGasto, lucro: (sReceita - sGasto) };
-
-            document.getElementById('tabelaFinanceiro').innerHTML = html;
-            document.getElementById('totalReceita').innerText = `R$ ${sReceita.toLocaleString('pt-BR')}`;
-            document.getElementById('totalGasto').innerText = `R$ ${sGasto.toLocaleString('pt-BR')}`;
-            document.getElementById('totalPago').innerText = `R$ ${sPagoReal.toLocaleString('pt-BR')}`;
-            document.getElementById('totalLucro').innerText = `R$ ${(sReceita - sGasto).toLocaleString('pt-BR')}`;
-            
-            atualizarListaVendedores();
-        } catch (e) { console.error(e); }
-    }
-
-    async function confirmar(id, campo, jaPago) {
-        if (jaPago || !confirm("Confirmar recebimento?")) return;
-        await supabaseClient.from('propostas').update({ [campo]: true }).eq('id', id);
-        carregarFinanceiro();
-    }
-
-    function atualizarListaVendedores() {
-        const select = document.getElementById('filtroVendedor');
-        const atual = select.value;
-        select.innerHTML = '<option value="">Todos</option>';
-        Array.from(vendedoresUnicos).sort().forEach(v => {
-            select.innerHTML += `<option value="${v}" ${v === atual ? 'selected' : ''}>${v}</option>`;
-        });
-    }
-
-    function baixarExcel() {
-        if (dadosParaExcel.length === 0) return alert("Sem dados para exportar.");
-        
-        // 1. Criar a linha de TOTAL consolidado
-        const linhaVazia = {};
-        const totais = {
-            "DATA": "RESUMO TOTAL",
-            "VENDEDOR": "",
-            "CLIENTE": "",
-            "FORMA": "",
-            "RECEITA (R$)": globais.receita,
-            "GASTO (R$)": globais.gasto,
-            "LUCRO (R$)": globais.lucro,
-            "RECEBIDO (R$)": "", 
-            "STATUS": ""
-        };
-        
-        const folhaFinal = [...dadosParaExcel, linhaVazia, totais];
-        const ws = XLSX.utils.json_to_sheet(folhaFinal);
-
-        // 2. Configurar largura das colunas (Espaço bom entre elas)
-        ws['!cols'] = [
-            { wch: 15 }, // Data
-            { wch: 20 }, // Vendedor
-            { wch: 35 }, // Cliente
-            { wch: 15 }, // Forma
-            { wch: 18 }, // Receita
-            { wch: 18 }, // Gasto
-            { wch: 18 }, // Lucro
-            { wch: 18 }, // Recebido
-            { wch: 20 }  // Status
-        ];
-
-        // 3. Gerar o arquivo e baixar
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Financeiro_Jobren");
-        XLSX.writeFile(wb, `Financeiro_Jobren_Relatorio_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
-    }
-
-    window.onload = () => {
-        const agora = new Date();
-        document.getElementById('dataInicio').value = new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString().split('T')[0];
-        document.getElementById('dataFim').value = new Date(agora.getFullYear(), agora.getMonth() + 1, 0).toISOString().split('T')[0];
-        carregarFinanceiro();
-    };
-</script>
-</body>
-</html>
