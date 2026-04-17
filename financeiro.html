@@ -97,14 +97,14 @@
         const formaFiltro = document.getElementById('filtroForma').value;
 
         try {
-            // QUERY ATUALIZADA: Puxando nomes dos motoristas da relação operacoes
+            // Ajustado para os nomes de colunas que você usa no banco: motorista_1 e motorista_2
             let query = supabaseClient.from('propostas').select(`
                 *, 
-                operacoes!fk_vinculo_final (
+                operacoes (
                     valor_m1, 
                     valor_m2, 
-                    motorista_m1_nome, 
-                    motorista_m2_nome
+                    motorista_1, 
+                    motorista_2
                 )
             `).order('created_at', { ascending: false });
 
@@ -126,9 +126,9 @@
                 const op = item.operacoes?.[0] || null;
                 const gasto = (op?.valor_m1 || 0) + (op?.valor_m2 || 0);
                 
-                // Formatação dos motoristas para exibição e Excel
-                const mot1 = op?.motorista_m1_nome || '-';
-                const mot2 = op?.motorista_m2_nome || '';
+                // Pegando os nomes dos motoristas conforme sua tabela
+                const mot1 = op?.motorista_1 || '-';
+                const mot2 = op?.motorista_2 || '';
                 const motoristasFormatado = mot2 ? `${mot1} / ${mot2}` : mot1;
 
                 const forma = (item.forma_pagamento || '').toLowerCase();
@@ -145,7 +145,7 @@
                         </div>`;
                 } else {
                     if (item.pago_cliente) recebidoLinha = receita;
-                    botoesHTML = `<button class="btn-confirma ${item.pago_cliente ? 'confirmado' : 'pendente'}" onclick="confirmar('${item.id}', 'pago_cliente', ${item.pago_cliente})">${item.pago_cliente ? '✅ OK' : 'Confirmar Total'}</button>`;
+                    botoesHTML = `<button class="btn-confirma ${item.pago_cliente ? 'confirmado' : 'pendente'}" onclick="confirmar('${item.id}', 'pago_cliente', ${item.pago_cliente})">${item.pago_cliente ? '✅ OK' : 'Confirmar'}</button>`;
                 }
 
                 sReceita += receita;
@@ -161,3 +161,66 @@
                     "RECEITA (R$)": receita,
                     "GASTO (R$)": gasto,
                     "LUCRO (R$)": (receita - gasto),
+                    "RECEBIDO (R$)": recebidoLinha,
+                    "STATUS": recebidoLinha >= receita ? "TOTAL PAGO" : (recebidoLinha > 0 ? "PARCIAL" : "PENDENTE")
+                });
+
+                html += `
+                    <tr>
+                        <td><small>${new Date(item.created_at).toLocaleDateString('pt-BR')}</small></td>
+                        <td>${item.vendedor_nome || '-'}</td>
+                        <td><strong>${item.cliente_nome}</strong><br><small style="color: #64748b">Mot: ${motoristasFormatado}</small></td>
+                        <td><span class="badge-forma">${forma.toUpperCase()}</span></td>
+                        <td>R$ ${receita.toLocaleString('pt-BR')}</td>
+                        <td style="color:var(--danger)">R$ ${gasto.toLocaleString('pt-BR')}</td>
+                        <td>${botoesHTML}</td>
+                        <td style="font-weight:bold; color:var(--success)">R$ ${recebidoLinha.toLocaleString('pt-BR')}</td>
+                    </tr>`;
+            });
+
+            globais = { receita: sReceita, gasto: sGasto, lucro: (sReceita - sGasto) };
+
+            document.getElementById('tabelaFinanceiro').innerHTML = html;
+            document.getElementById('totalReceita').innerText = `R$ ${sReceita.toLocaleString('pt-BR')}`;
+            document.getElementById('totalGasto').innerText = `R$ ${sGasto.toLocaleString('pt-BR')}`;
+            document.getElementById('totalPago').innerText = `R$ ${sPagoReal.toLocaleString('pt-BR')}`;
+            document.getElementById('totalLucro').innerText = `R$ ${(sReceita - sGasto).toLocaleString('pt-BR')}`;
+            
+            atualizarListaVendedores();
+        } catch (e) { console.error(e); }
+    }
+
+    async function confirmar(id, campo, jaPago) {
+        if (jaPago || !confirm("Confirmar recebimento?")) return;
+        await supabaseClient.from('propostas').update({ [campo]: true }).eq('id', id);
+        carregarFinanceiro();
+    }
+
+    function atualizarListaVendedores() {
+        const select = document.getElementById('filtroVendedor');
+        const atual = select.value;
+        select.innerHTML = '<option value="">Todos</option>';
+        Array.from(vendedoresUnicos).sort().forEach(v => {
+            select.innerHTML += `<option value="${v}" ${v === atual ? 'selected' : ''}>${v}</option>`;
+        });
+    }
+
+    function baixarExcel() {
+        if (dadosParaExcel.length === 0) return alert("Sem dados para exportar.");
+        const linhaVazia = {};
+        const totais = { "DATA": "TOTAL", "RECEITA (R$)": globais.receita, "GASTO (R$)": globais.gasto, "LUCRO (R$)": globais.lucro };
+        const ws = XLSX.utils.json_to_sheet([...dadosParaExcel, linhaVazia, totais]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
+        XLSX.writeFile(wb, `Financeiro_Jobren.xlsx`);
+    }
+
+    window.onload = () => {
+        const agora = new Date();
+        document.getElementById('dataInicio').value = new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString().split('T')[0];
+        document.getElementById('dataFim').value = new Date(agora.getFullYear(), agora.getMonth() + 1, 0).toISOString().split('T')[0];
+        carregarFinanceiro();
+    };
+</script>
+</body>
+</html>
