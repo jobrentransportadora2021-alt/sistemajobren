@@ -58,7 +58,7 @@
     <div class="card-stats">
         <div class="stat"><label>Receita Bruta</label><div id="totalReceita" style="color:var(--primary)">R$ 0,00</div></div>
         <div class="stat"><label>Recebido (Caixa)</label><div id="totalPago" style="color:var(--success)">R$ 0,00</div></div>
-        <div class="stat"><label>Gasto (Motoristas)</label><div id="totalGasto" style="color:var(--danger)">R$ 0,00</div></div>
+        <div class="stat"><label>Custo Operacional</label><div id="totalGasto" style="color:var(--danger)">R$ 0,00</div></div>
         <div class="stat"><label>Lucro Estimado</label><div id="totalLucro">R$ 0,00</div></div>
     </div>
 
@@ -67,7 +67,7 @@
             <tr>
                 <th>Data</th>
                 <th>Vendedor</th>
-                <th>Cliente / Motorista</th>
+                <th>Cliente / Motoristas</th>
                 <th>Forma</th>
                 <th>Receita</th>
                 <th>Gasto</th>
@@ -92,6 +92,7 @@
         const formaFiltro = document.getElementById('filtroForma').value;
 
         try {
+            // Busca incluindo os campos de motorista da tabela operacoes
             let query = supabaseClient.from('propostas').select(`
                 *, 
                 operacoes (valor_m1, valor_m2, motorista_1, motorista_2)
@@ -112,11 +113,13 @@
                 if (item.vendedor_nome) vendedoresUnicos.add(item.vendedor_nome);
                 
                 const receita = item.valor_frete_cliente || 0;
-                const op = item.operacoes?.[0] || null;
-                const gasto = (op?.valor_m1 || 0) + (op?.valor_m2 || 0);
-                const mot1 = op?.motorista_1 || '-';
-                const mot2 = op?.motorista_2 || '';
-                const motoristasFormatado = mot2 ? `${mot1} / ${mot2}` : mot1;
+                const op = item.operacoes?.[0] || {};
+                const gasto = (op.valor_m1 || 0) + (op.valor_m2 || 0);
+                
+                // Lógica para exibir um ou dois motoristas
+                const mot1 = op.motorista_1 || '-';
+                const mot2 = op.motorista_2 || '';
+                const motoristasExibicao = mot2 ? `${mot1} / ${mot2}` : mot1;
 
                 const forma = (item.forma_pagamento || '').toLowerCase();
                 let recebidoLinha = 0;
@@ -143,7 +146,7 @@
                     <tr>
                         <td><small>${new Date(item.created_at).toLocaleDateString('pt-BR')}</small></td>
                         <td>${item.vendedor_nome || '-'}</td>
-                        <td><strong>${item.cliente_nome}</strong><br><small style="color: #64748b">Mot: ${motoristasFormatado}</small></td>
+                        <td><strong>${item.cliente_nome}</strong><br><small style="color: #64748b">MOT: ${motoristasExibicao}</small></td>
                         <td><span class="badge-forma">${forma.toUpperCase()}</span></td>
                         <td>R$ ${receita.toLocaleString('pt-BR')}</td>
                         <td style="color:var(--danger)">R$ ${gasto.toLocaleString('pt-BR')}</td>
@@ -182,7 +185,6 @@
     function baixarExcel() {
         if (dadosBrutosParaRelatorio.length === 0) return alert("Não há dados para exportar.");
 
-        // Criando a estrutura de dados profissional para o Excel
         const rows = dadosBrutosParaRelatorio.map(item => {
             const op = item.operacoes?.[0] || {};
             const receita = item.valor_frete_cliente || 0;
@@ -201,42 +203,41 @@
                 "DATA": new Date(item.created_at).toLocaleDateString('pt-BR'),
                 "VENDEDOR": item.vendedor_nome || '-',
                 "CLIENTE": item.cliente_nome,
-                "MOTORISTAS": (op.motorista_1 || '-') + (op.motorista_2 ? ' / ' + op.motorista_2 : ''),
-                "FORMA": forma,
-                "VALOR FRETE (R$)": receita,
-                "CUSTO MOTORISTAS (R$)": gasto,
-                "LUCRO BRUTO (R$)": receita - gasto,
-                "VALOR RECEBIDO (R$)": recebido,
-                "STATUS FINANCEIRO": recebido >= receita ? "PAGO" : (recebido > 0 ? "PARCIAL" : "PENDENTE")
+                "MOTORISTA 01": op.motorista_1 || '-',
+                "MOTORISTA 02": op.motorista_2 || '-',
+                "FORMA PAG.": forma,
+                "RECEITA (R$)": receita,
+                "GASTO OPER. (R$)": gasto,
+                "LUCRO LÍQUIDO (R$)": receita - gasto,
+                "SALDO RECEBIDO (R$)": recebido,
+                "STATUS": recebido >= receita ? "TOTALIZADO" : (recebido > 0 ? "PARCIAL" : "PENDENTE")
             };
         });
 
-        // Adiciona linha de separação e totais
+        // Rodapé com Totais
         rows.push({}); 
         rows.push({
-            "DATA": "RESUMO GERAL",
-            "VALOR FRETE (R$)": totaisGlobais.receita,
-            "CUSTO MOTORISTAS (R$)": totaisGlobais.gasto,
-            "LUCRO BRUTO (R$)": totaisGlobais.receita - totaisGlobais.gasto,
-            "VALOR RECEBIDO (R$)": totaisGlobais.pago
+            "DATA": "RESUMO TOTAL",
+            "RECEITA (R$)": totaisGlobais.receita,
+            "GASTO OPER. (R$)": totaisGlobais.gasto,
+            "LUCRO LÍQUIDO (R$)": totaisGlobais.receita - totaisGlobais.gasto,
+            "SALDO RECEBIDO (R$)": totaisGlobais.pago
         });
 
         const ws = XLSX.utils.json_to_sheet(rows);
 
-        // Estilo das Colunas (Largura Automática Profissional)
-        const colWidths = [
-            { wch: 12 }, { wch: 15 }, { wch: 30 }, { wch: 35 }, 
-            { wch: 15 }, { wch: 18 }, { wch: 22 }, { wch: 18 }, 
-            { wch: 20 }, { wch: 20 }
+        // Configuração de largura de colunas para acomodar os nomes
+        ws['!cols'] = [
+            { wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 20 }, 
+            { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, 
+            { wch: 18 }, { wch: 18 }, { wch: 15 }
         ];
-        ws['!cols'] = colWidths;
 
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Relatório Financeiro");
+        XLSX.utils.book_append_sheet(wb, ws, "Financeiro Jobren");
 
-        // Download com nome datado
         const dataHoje = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-        XLSX.writeFile(wb, `Relatorio_Jobren_Master_${dataHoje}.xlsx`);
+        XLSX.writeFile(wb, `Financeiro_Master_Jobren_${dataHoje}.xlsx`);
     }
 
     window.onload = () => {
