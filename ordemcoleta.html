@@ -9,25 +9,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        /* CSS Otimizado para Página Única A4 */
+        /* Reset para garantir uma página única */
         * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
         
         body { 
-            font-family: Arial, sans-serif; 
-            background-color: #0f172a; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #1e293b; 
             margin: 0; 
-            padding: 20px;
+            padding: 10px;
             display: flex;
             justify-content: center;
         }
 
         #ordem-documento { 
             width: 210mm; 
-            height: 297mm; 
+            height: 295mm; /* Ligeiramente menor que A4 para margem de segurança */
             background: white; 
-            padding: 10mm; 
+            padding: 8mm; 
             position: relative;
-            overflow: hidden; /* Impede criação de 2ª página */
+            overflow: hidden;
         }
 
         .header { 
@@ -38,53 +38,53 @@
             margin-bottom: 10px; 
         }
 
-        .brand h1 { margin: 0; color: #002347; font-size: 26px; font-weight: 900; }
-        .brand p { margin: 1px 0; font-size: 10px; color: #333; font-weight: bold; }
+        .brand h1 { margin: 0; color: #002347; font-size: 24px; font-weight: 900; }
+        .brand p { margin: 1px 0; font-size: 9px; color: #333; font-weight: bold; }
 
         .id-box { 
             background: #1a1a1a; 
             color: white; 
-            padding: 10px 25px; 
+            padding: 10px 20px; 
             text-align: center; 
-            border-right: 6px solid #003366;
-            border-radius: 4px;
+            border-right: 5px solid #003366;
         }
-        .id-box span { font-size: 9px; display: block; color: #aaa; text-transform: uppercase; }
-        .id-box h2 { margin: 0; font-size: 24px; }
+        .id-box span { font-size: 8px; display: block; color: #ccc; }
+        .id-box h2 { margin: 0; font-size: 22px; }
 
         .bar { 
             background: #002347; 
             color: white; 
-            padding: 6px 12px; 
-            font-size: 11px; 
+            padding: 5px 10px; 
+            font-size: 10px; 
             font-weight: bold; 
             text-transform: uppercase; 
-            margin: 10px 0 3px 0;
+            margin: 8px 0 2px 0;
         }
 
-        table { width: 100%; border-collapse: collapse; margin-bottom: 2px; table-layout: fixed; }
-        td { border: 1px solid #ccc; padding: 5px 8px; vertical-align: top; overflow: hidden; }
+        /* Grid System via Table para precisão de PDF */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 2px; }
+        td { border: 1px solid #ccc; padding: 4px 8px; vertical-align: top; }
         
-        label { display: block; font-size: 8px; font-weight: 800; color: #003366; text-transform: uppercase; margin-bottom: 2px; }
+        label { display: block; font-size: 7px; font-weight: 800; color: #003366; text-transform: uppercase; }
         input, textarea { 
-            width: 100%; border: none; outline: none; font-size: 12px; 
-            font-weight: bold; background: transparent; padding: 0; color: #000;
+            width: 100%; border: none; outline: none; font-size: 11px; 
+            font-weight: bold; background: transparent; padding: 0;
         }
 
-        .actions { position: fixed; left: 30px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; }
-        .btn { padding: 15px 25px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: 0.2s; }
+        /* Botões laterais */
+        .actions { position: fixed; left: 20px; top: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .btn { padding: 12px 20px; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; }
         .btn-save { background: #22c55e; }
         .btn-pdf { background: #3b82f6; }
-        .btn:hover { transform: scale(1.05); }
 
-        @media print { .actions { display: none; } #ordem-documento { padding: 0; } }
+        @media print { .actions { display: none; } }
     </style>
 </head>
 <body>
 
 <div class="actions">
-    <button class="btn btn-save" onclick="salvarBancoCompleto()">💾 SALVAR NO BANCO</button>
-    <button class="btn btn-pdf" onclick="gerarPDF()">📄 APENAS GERAR PDF</button>
+    <button class="btn btn-save" onclick="salvarBancoCompleto()">💾 SALVAR E GERAR</button>
+    <button class="btn btn-pdf" onclick="gerarPDF()">📄 SÓ GERAR PDF</button>
 </div>
 
 <div id="ordem-documento">
@@ -102,17 +102,17 @@
 
     <table>
         <tr>
-            <td><label>Data/Hora Inicial</label><input type="datetime-local" id="dt_ini"></td>
-            <td><label>Data/Hora Final</label><input type="datetime-local" id="dt_fim"></td>
-            <td><label>Previsão Entrega</label><input type="date" id="dt_ent"></td>
+            <td width="33%"><label>Data/Hora Inicial</label><input type="datetime-local" id="dt_ini"></td>
+            <td width="33%"><label>Data/Hora Final</label><input type="datetime-local" id="dt_fim"></td>
+            <td width="34%"><label>Previsão Entrega</label><input type="date" id="dt_ent"></td>
         </tr>
     </table>
 
     <div class="bar">01. Identificação do Remetente</div>
     <table>
         <tr>
-            <td width="35%"><label>CNPJ / CPF</label><input type="text" id="rem_cnpj" onblur="fetchCompany('rem')"></td>
-            <td width="65%"><label>Razão Social / Nome</label><input type="text" id="rem_nome"></td>
+            <td width="30%"><label>CNPJ / CPF</label><input type="text" id="rem_cnpj" onblur="fetchCompany('rem')"></td>
+            <td width="70%"><label>Razão Social / Nome</label><input type="text" id="rem_nome"></td>
         </tr>
         <tr>
             <td colspan="2"><label>Endereço de Coleta</label><input type="text" id="rem_end"></td>
@@ -122,8 +122,8 @@
     <div class="bar">02. Identificação do Destinatário</div>
     <table>
         <tr>
-            <td width="35%"><label>CNPJ / CPF</label><input type="text" id="dest_cnpj" onblur="fetchCompany('dest')"></td>
-            <td width="65%"><label>Razão Social / Nome</label><input type="text" id="dest_nome"></td>
+            <td width="30%"><label>CNPJ / CPF</label><input type="text" id="dest_cnpj" onblur="fetchCompany('dest')"></td>
+            <td width="70%"><label>Razão Social / Nome</label><input type="text" id="dest_nome"></td>
         </tr>
         <tr>
             <td colspan="2"><label>Endereço de Entrega</label><input type="text" id="dest_end"></td>
@@ -145,29 +145,30 @@
         <tr>
             <td>
                 <label>Notas de Transporte</label>
-                <textarea id="obs_geral" rows="6" placeholder="Restrições de horário, contatos, etc..."></textarea>
+                <textarea id="obs_geral" rows="6"></textarea>
             </td>
         </tr>
     </table>
 
-    <div style="margin-top: 60px; display: flex; justify-content: space-around;">
-        <div style="width: 40%; text-align: center; border-top: 1.5px solid #000; padding-top: 5px;">
-            <span style="font-size: 9px; font-weight: bold; text-transform: uppercase;">Assinatura Motorista</span>
+    <div style="margin-top: 50px; display: flex; justify-content: space-around;">
+        <div style="width: 40%; text-align: center; border-top: 1px solid #000; padding-top: 5px;">
+            <span style="font-size: 8px; font-weight: bold; text-transform: uppercase;">Assinatura Motorista</span>
         </div>
-        <div style="width: 40%; text-align: center; border-top: 1.5px solid #000; padding-top: 5px;">
-            <span style="font-size: 9px; font-weight: bold; text-transform: uppercase;">Carimbo e Recebimento</span>
+        <div style="width: 40%; text-align: center; border-top: 1px solid #000; padding-top: 5px;">
+            <span style="font-size: 8px; font-weight: bold; text-transform: uppercase;">Carimbo e Recebimento</span>
         </div>
     </div>
 
-    <div style="position: absolute; bottom: 10mm; width: 100%; text-align: center; font-size: 9px; color: #999; left: 0;">
-        DOCUMENTO GERADO ELETRONICAMENTE - SISTEMA JOBREN TRANSPORTES
+    <div style="position: absolute; bottom: 10mm; width: 100%; text-align: center; font-size: 8px; color: #999;">
+        DOCUMENTO GERADO VIA SISTEMA JOBREN TRANSPORTES
     </div>
 </div>
 
 <script>
+    // Configurações do Supabase (Substitua se necessário)
     const S_URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co';
     const S_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
-    const _supabase = supabase.createClient(S_URL, S_KEY);
+    let _supabase = supabase.createClient(S_URL, S_KEY);
 
     window.onload = () => {
         document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
@@ -179,78 +180,54 @@
 
     async function fetchCompany(t) {
         const c = document.getElementById(t+'_cnpj').value.replace(/\D/g,'');
-        if(c.length >= 11) {
-            try {
-                const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${c}`);
-                const d = await r.json();
-                if(d.razao_social) {
-                    document.getElementById(t+'_nome').value = d.razao_social;
-                    document.getElementById(t+'_end').value = `${d.logradouro}, ${d.numero} - ${d.bairro} (${d.municipio}/${d.uf})`;
-                }
-            } catch(e) { console.error("Erro ao buscar CNPJ"); }
+        if(c.length === 14) {
+            const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${c}`);
+            const d = await r.json();
+            if(d.razao_social) {
+                document.getElementById(t+'_nome').value = d.razao_social;
+                document.getElementById(t+'_end').value = `${d.logradouro}, ${d.numero} - ${d.bairro} (${d.municipio}/${d.uf})`;
+            }
         }
     }
 
     async function salvarBancoCompleto() {
-        const btn = document.querySelector('.btn-save');
         const num = document.getElementById('num_id').innerText;
         const el = document.getElementById('ordem-documento');
         
-        btn.disabled = true;
-        btn.innerText = "⏳ PROCESSANDO...";
-
+        // Opções para manter em UMA PÁGINA
         const opt = {
             margin: 0,
-            filename: `Coleta_Jobren_${num}.pdf`,
+            filename: `Coleta_${num}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+            html2canvas: { scale: 2, useCORS: true, y: 0 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
         try {
-            // 1. Gera PDF
             const pdfBlob = await html2pdf().set(opt).from(el).output('blob');
             const path = `pdf/coleta_${num}.pdf`;
             
-            // 2. Upload Storage
-            await _supabase.storage.from('documentos_coleta').upload(path, pdfBlob, { upsert: true });
+            // 1. Upload Storage
+            await _supabase.storage.from('documentos_coleta').upload(path, pdfBlob);
             const { data: { publicUrl } } = _supabase.storage.from('documentos_coleta').getPublicUrl(path);
 
-            // 3. Salva no Banco (Ajustado para suas colunas)
-            const { error } = await _supabase.from('coletas_pro').insert([{
-                numero_coleta: parseInt(num),
-                cnpj: document.getElementById('rem_cnpj').value,
+            // 2. Salvar no Banco (Use os nomes das suas colunas aqui)
+            await _supabase.from('coletas_pro').insert([{
+                numero_coleta: num,
                 razao_social: document.getElementById('rem_nome').value,
-                endereco: document.getElementById('rem_end').value,
                 dest_nome: document.getElementById('dest_nome').value,
-                url_documento: publicUrl,
-                empresa: 'Jobren Transportes'
+                url_documento: publicUrl
             }]);
 
-            if(error) throw error;
-
-            // 4. Download
-            await html2pdf().set(opt).from(el).save();
-            alert("✅ Ordem #" + num + " salva e PDF gerado com sucesso!");
-            location.reload();
-
-        } catch (e) { 
-            alert("❌ Erro: " + e.message); 
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "💾 SALVAR NO BANCO";
-        }
+            // 3. Download para o usuário
+            html2pdf().set(opt).from(el).save();
+            alert("Sucesso! Página única gerada e salva.");
+        } catch (e) { alert("Erro: " + e.message); }
     }
 
     function gerarPDF() {
         const num = document.getElementById('num_id').innerText;
-        const el = document.getElementById('ordem-documento');
-        html2pdf().set({ 
-            margin: 0, 
-            filename: `Coleta_${num}.pdf`, 
-            html2canvas: { scale: 2 },
-            jsPDF: { format: 'a4' } 
-        }).from(el).save();
+        html2pdf().set({ margin: 0, filename: `Coleta_${num}.pdf`, jsPDF: { format: 'a4' } }).from(document.getElementById('ordem-documento')).save();
     }
 </script>
 </body>
