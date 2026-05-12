@@ -3,216 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren Transportes | Emissão Profissional</title>
+    <title>Jobren Transportes | Ordem de Coleta</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        :root { --main-black: #000; --soft-gray: #f4f4f4; --jobren-blue: #003366; }
+        :root { 
+            --jobren-blue: #003366; 
+            --jobren-black: #1a1a1a; 
+            --accent: #ffcc00;
+            --bg: #f0f2f5;
+        }
         
-        body { font-family: "Courier New", Courier, monospace; background-color: #2c3e50; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
 
-        /* Container Principal Responsivo */
-        #doc-a4 { 
-            width: 100%; 
-            max-width: 210mm; 
+        /* Estilo da Folha Moderna */
+        #ordem-coleta { 
+            width: 210mm; 
             min-height: 297mm; 
             background: white; 
-            padding: 10mm; 
+            padding: 15mm; 
             box-sizing: border-box; 
-            border: 1px solid #000;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
         }
 
-        /* Cabeçalho Técnico */
-        .header-grid { 
+        /* Cabeçalho Premium */
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            border-bottom: 3px solid var(--jobren-blue);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .brand-info h1 { margin: 0; color: var(--jobren-blue); font-size: 26px; text-transform: uppercase; letter-spacing: 1px; }
+        .brand-info p { margin: 3px 0; font-size: 11px; color: #555; line-height: 1.4; }
+        
+        .coleta-badge { 
+            background: var(--jobren-black); 
+            color: white; 
+            padding: 10px 20px; 
+            border-radius: 5px; 
+            text-align: center;
+            min-width: 150px;
+        }
+        .coleta-badge span { font-size: 10px; text-transform: uppercase; opacity: 0.8; }
+        .coleta-badge h2 { margin: 0; font-size: 24px; color: var(--accent); }
+
+        /* Tabela Estilizada */
+        .section-header { 
+            background: var(--jobren-blue); 
+            color: white; 
+            padding: 8px 15px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            text-transform: uppercase;
+            border-radius: 4px 4px 0 0;
+            margin-top: 20px;
+        }
+        .grid-container { 
             display: grid; 
-            grid-template-columns: 2fr 1fr; 
-            border: 2px solid var(--main-black); 
-            margin-bottom: 10px;
+            grid-template-columns: repeat(4, 1fr); 
+            border: 1px solid #ddd;
+            border-top: none;
+            margin-bottom: 15px;
+            border-radius: 0 0 4px 4px;
+            overflow: hidden;
         }
-        .info-jobren { padding: 10px; border-right: 2px solid #000; }
-        .info-jobren h2 { margin: 0; font-size: 18px; color: var(--jobren-blue); }
-        .info-jobren p { margin: 2px 0; font-size: 11px; font-weight: bold; }
-        
-        .info-coleta { padding: 10px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
-        .info-coleta span { font-size: 12px; font-weight: bold; }
-        .info-coleta h1 { margin: 0; font-size: 28px; color: #e74c3c; }
-
-        /* Tabela Robusta */
-        .grid-table { width: 100%; border: 1px solid #000; display: flex; flex-direction: column; }
-        .row { display: flex; border-bottom: 1px solid #000; flex-wrap: wrap; }
-        .row:last-child { border-bottom: none; }
-        
-        .cell { padding: 6px; border-right: 1px solid #000; flex: 1; min-width: 120px; display: flex; flex-direction: column; }
+        .cell { padding: 10px; border-right: 1px solid #eee; border-bottom: 1px solid #eee; background: #fff; }
         .cell:last-child { border-right: none; }
-        .header-row { background-color: var(--soft-gray); font-weight: bold; font-size: 10px; text-transform: uppercase; padding: 4px 10px; border-bottom: 1px solid #000; }
+        .full-w { grid-column: span 4; }
+        .half-w { grid-column: span 2; }
 
-        label { font-size: 9px; font-weight: bold; color: #444; margin-bottom: 2px; }
-        input, textarea { border: none; outline: none; font-family: inherit; font-size: 12px; background: transparent; width: 100%; padding: 2px 0; }
-        input:focus { background-color: #fff9c4; }
-
-        /* Área de Assinaturas */
-        .signatures { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; text-align: center; font-size: 10px; }
-        .sig-box { border-top: 1px solid #000; padding-top: 5px; }
-
-        /* Botões Flutuantes */
-        .btn-panel { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 999; }
-        .btn { padding: 15px 20px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        .btn-save { background: #27ae60; }
-        .btn-pdf { background: #2980b9; }
-
-        @media print { .btn-panel { display: none; } #doc-a4 { box-shadow: none; border: none; width: 100%; } }
-        
-        /* Ajuste Celular */
-        @media (max-width: 600px) {
-            .header-grid { grid-template-columns: 1fr; }
-            .info-jobren { border-right: none; border-bottom: 2px solid #000; }
-            .cell { border-right: none; border-bottom: 1px solid #000; min-width: 100%; }
+        label { display: block; font-size: 9px; font-weight: bold; color: var(--jobren-blue); text-transform: uppercase; margin-bottom: 4px; }
+        input, textarea { 
+            width: 100%; border: none; outline: none; font-size: 13px; color: var(--jobren-black); 
+            padding: 4px 0; font-family: inherit; background: transparent;
         }
+        input::placeholder { color: #ccc; }
+        input:focus { border-bottom: 1px solid var(--accent); }
+
+        /* Rodapé Assinaturas */
+        .signature-area { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .sig-box { border-top: 1px solid var(--jobren-black); text-align: center; padding-top: 10px; font-size: 11px; font-weight: bold; color: #444; }
+
+        /* Painel de Controle Flutuante */
+        .panel { position: fixed; right: 30px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; }
+        .btn { 
+            padding: 15px 25px; border: none; border-radius: 50px; color: white; font-weight: bold; 
+            cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .btn-save { background: var(--jobren-blue); }
+        .btn-pdf { background: var(--jobren-black); }
+        .btn:hover { transform: scale(1.05); filter: brightness(1.2); }
+
+        @media print { .panel { display: none; } #ordem-coleta { box-shadow: none; border: none; margin: 0; width: 100%; } }
     </style>
 </head>
 <body>
 
-<div class="btn-panel">
-    <button class="btn btn-save" onclick="salvarColeta()">💾 SALVAR NO BANCO</button>
-    <button class="btn btn-pdf" onclick="gerarPDF()">📄 BAIXAR E RESETAR</button>
+<div class="panel">
+    <button class="btn btn-save" onclick="saveData()">💾 SALVAR DADOS</button>
+    <button class="btn btn-pdf" onclick="generatePDF()">📄 GERAR PDF</button>
 </div>
 
-<div id="doc-a4">
-    <div class="header-grid">
-        <div class="info-jobren">
-            <h2>JOBREN TRANSPORTES LTDA</h2>
-            <p>RUA THOMAS LOSITO, 8 - PARQUE NOVO MUNDO</p>
-            <p>SAO PAULO/SP - CEP: 02181-050</p>
-            <p>CNPJ: 53.566.595/0001-03 | IE: 132.867.924.118</p>
-            <p>FONE: (11) 98111-6990</p>
+<div id="ordem-coleta">
+    <div class="header">
+        <div class="brand-info">
+            <h1>Jobren Transportes Ltda</h1>
+            <p><strong>Endereço:</strong> Rua Thomas Losito, 8 - Parque Novo Mundo, São Paulo/SP</p>
+            <p><strong>CNPJ:</strong> 53.566.595/0001-03 | <strong>Fone:</strong> (11) 98111-6990</p>
+            <p><strong>IE:</strong> 132.867.924.118 | <strong>CEP:</strong> 02181-050</p>
         </div>
-        <div class="info-coleta">
-            <span>ORDEM DE COLETA</span>
-            <h1 id="cod_coleta">00000</h1>
-            <small id="data_emissao"></small>
-        </div>
-    </div>
-
-    <div class="grid-table">
-        <div class="row">
-            <div class="cell"><label>Início Coleta</label><input type="text" id="dt_ini"></div>
-            <div class="cell"><label>Data Entrega</label><input type="text" id="dt_ent"></div>
-            <div class="cell"><label>Situação</label><input type="text" value="ABERTO" readonly></div>
-        </div>
-
-        <div class="header-row">1. Dados do Remetente (Origem)</div>
-        <div class="row">
-            <div class="cell" style="flex: 1.5;"><label>CNPJ (Somente Números)</label><input type="text" id="rem_cnpj" maxlength="14" onblur="puxarDados('rem')" placeholder="00000000000000"></div>
-            <div class="cell" style="flex: 3;"><label>Razão Social</label><input type="text" id="rem_nome"></div>
-        </div>
-        <div class="row">
-            <div class="cell" style="flex: 3;"><label>Endereço Completo</label><input type="text" id="rem_end"></div>
-            <div class="cell" style="flex: 1;"><label>Cidade/UF</label><input type="text" id="rem_cid"></div>
-        </div>
-
-        <div class="header-row">2. Dados do Destinatário (Destino)</div>
-        <div class="row">
-            <div class="cell" style="flex: 1.5;"><label>CNPJ (Somente Números)</label><input type="text" id="dest_cnpj" maxlength="14" onblur="puxarDados('dest')" placeholder="00000000000000"></div>
-            <div class="cell" style="flex: 3;"><label>Razão Social</label><input type="text" id="dest_nome"></div>
-        </div>
-        <div class="row">
-            <div class="cell" style="flex: 3;"><label>Endereço Completo</label><input type="text" id="dest_end"></div>
-            <div class="cell" style="flex: 1;"><label>Cidade/UF</label><input type="text" id="dest_cid"></div>
-        </div>
-
-        <div class="header-row">3. Informações da Carga</div>
-        <div class="row">
-            <div class="cell"><label>Notas Fiscais</label><input type="text" id="nfs" placeholder="NF-e"></div>
-            <div class="cell"><label>Qtd Volumes</label><input type="number" id="vols" value="1"></div>
-            <div class="cell"><label>Peso Bruto (KG)</label><input type="text" id="peso" value="0.00"></div>
-            <div class="cell"><label>Valor Carga R$</label><input type="text" id="valor" value="0.00"></div>
-        </div>
-        
-        <div class="row">
-            <div class="cell"><label>Tomador do Frete</label><input type="text" id="tomador" value="REMETENTE"></div>
-            <div class="cell" style="flex: 2;"><label>Observações</label><textarea id="obs" rows="2"></textarea></div>
+        <div class="coleta-badge">
+            <span>Ordem de Coleta</span>
+            <h2 id="coleta_id">00000</h2>
+            <div id="current_date" style="font-size: 10px; margin-top: 5px;"></div>
         </div>
     </div>
 
-    <div class="signatures">
-        <div class="sig-box">Assinatura Motorista</div>
-        <div class="sig-box">Assinatura Remetente</div>
-        <div class="sig-box">Data e Hora Recebimento</div>
+    <div class="section-header">1. Informações de Origem (Remetente)</div>
+    <div class="grid-container">
+        <div class="cell half-w">
+            <label>CNPJ Remetente</label>
+            <input type="text" id="rem_cnpj" placeholder="Digite para buscar..." onblur="fetchCompany('rem')">
+        </div>
+        <div class="cell half-w">
+            <label>Razão Social</label>
+            <input type="text" id="rem_nome">
+        </div>
+        <div class="cell full-w">
+            <label>Endereço Completo</label>
+            <input type="text" id="rem_end">
+        </div>
+    </div>
+
+    <div class="section-header">2. Informações de Destino (Destinatário)</div>
+    <div class="grid-container">
+        <div class="cell half-w">
+            <label>CNPJ Destinatário</label>
+            <input type="text" id="dest_cnpj" onblur="fetchCompany('dest')">
+        </div>
+        <div class="cell half-w">
+            <label>Razão Social</label>
+            <input type="text" id="dest_nome">
+        </div>
+        <div class="cell full-w">
+            <label>Endereço Completo</label>
+            <input type="text" id="dest_end">
+        </div>
+    </div>
+
+    <div class="section-header">3. Especificações da Carga</div>
+    <div class="grid-container">
+        <div class="cell">
+            <label>Volumes</label>
+            <input type="number" id="vols" value="1">
+        </div>
+        <div class="cell">
+            <label>Peso (KG)</label>
+            <input type="text" id="peso" value="0.00">
+        </div>
+        <div class="cell">
+            <label>Valor NFs</label>
+            <input type="text" id="val" value="0.00">
+        </div>
+        <div class="cell">
+            <label>Número NF-e</label>
+            <input type="text" id="nf_list">
+        </div>
+        <div class="cell half-w">
+            <label>Tomador do Frete</label>
+            <input type="text" id="tomador" value="REMETENTE">
+        </div>
+        <div class="cell half-w">
+            <label>Tipo de Carga</label>
+            <input type="text" id="tipo_carga" placeholder="Ex: Eletrônicos">
+        </div>
+        <div class="cell full-w">
+            <label>Observações / Instruções de Coleta</label>
+            <textarea id="obs" rows="3"></textarea>
+        </div>
+    </div>
+
+    <div class="signature-area">
+        <div class="sig-box">Assinatura do Motorista</div>
+        <div class="sig-box">Carimbo e Assinatura (Remetente)</div>
     </div>
 </div>
 
 <script>
-    // Configurações Iniciais
-    const SUPABASE_URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
-    let _supabase = null;
+    const S_URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co';
+    const S_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
+    let _sb = null;
 
     function init() {
-        _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        gerarNovoID();
+        _sb = supabase.createClient(S_URL, S_KEY);
+        const code = Math.floor(10000 + Math.random() * 90000);
+        document.getElementById('coleta_id').innerText = code;
+        document.getElementById('current_date').innerText = new Date().toLocaleString();
+    }
+
+    async function fetchCompany(type) {
+        const val = document.getElementById(type + '_cnpj').value.replace(/\D/g, '');
+        if(val.length < 14) return;
         
-        const agora = new Date();
-        document.getElementById('dt_ini').value = agora.toLocaleString('pt-BR');
-        document.getElementById('dt_ent').value = agora.toLocaleDateString('pt-BR');
-        document.getElementById('data_emissao').innerText = agora.toLocaleString();
-    }
-
-    function gerarNovoID() {
-        const id = Math.floor(10000 + Math.random() * 90000);
-        document.getElementById('cod_coleta').innerText = id;
-    }
-
-    // Busca de CNPJ Automática e Instantânea
-    async function puxarDados(tipo) {
-        const cnpj = document.getElementById(tipo + '_cnpj').value.replace(/\D/g, '');
-        if (cnpj.length !== 14) return;
-
         try {
-            const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-            const data = await res.json();
-            
-            if (data.razao_social) {
-                document.getElementById(tipo + '_nome').value = data.razao_social;
-                document.getElementById(tipo + '_end').value = `${data.logradouro}, ${data.numero} - ${data.bairro}`;
-                document.getElementById(tipo + '_cid').value = `${data.municipio}/${data.uf}`;
-            }
-        } catch (e) { console.error("Erro na busca do CNPJ"); }
-    }
-
-    async function salvarColeta() {
-        const payload = {
-            numero_coleta: document.getElementById('cod_coleta').innerText,
-            rem_nome: document.getElementById('rem_nome').value,
-            dest_nome: document.getElementById('dest_nome').value,
-            nf_numero: document.getElementById('nfs').value,
-            empresa_emitente: 'Jobren Transportes'
-        };
-
-        const { error } = await _supabase.from('coletas_pro').insert([payload]);
-        if (!error) alert("✅ Ordem salva no sistema!");
-    }
-
-    function gerarPDF() {
-        const doc = document.getElementById('doc-a4');
-        const num = document.getElementById('cod_coleta').innerText;
-        
-        const opt = {
-            margin: 0,
-            filename: `Jobren_Coleta_${num}.pdf`,
-            image: { type: 'jpeg', quality: 1 },
-            html2canvas: { scale: 3 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        html2pdf().set(opt).from(doc).save().then(() => {
-            location.reload(); // Reseta para nova coleta com novo ID
-        });
-    }
-
-    window.onload = init;
-</script>
-</body>
-</html>
+            const res = await fetch(
