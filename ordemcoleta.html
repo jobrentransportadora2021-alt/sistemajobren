@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren Transportes | Emissor Profissional</title>
+    <title>Jobren Transportes | Sistema de Coleta</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -29,7 +29,7 @@
         .span-6 { grid-column: span 6; } .span-3 { grid-column: span 3; } .span-2 { grid-column: span 2; }
         
         label { font-size: 8px; font-weight: 800; color: var(--blue); text-transform: uppercase; margin-bottom: 2px; }
-        input { border: none; outline: none; font-size: 11px; color: #000; font-family: inherit; background: transparent; width: 100%; }
+        input, textarea { border: none; outline: none; font-size: 11px; color: #000; font-family: inherit; background: transparent; width: 100%; resize: none; }
         
         .actions { position: fixed; right: 20px; top: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
         .btn { padding: 15px 25px; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: 0.3s; }
@@ -56,7 +56,7 @@
         </div>
         <div class="id-box">
             <span>Ordem de Coleta</span>
-            <h2 id="num_id">00000</h2>
+            <h2 id="num_id">--</h2>
         </div>
     </div>
 
@@ -70,14 +70,14 @@
     <div class="grid">
         <div class="cell span-2"><label>CNPJ/CPF</label><input type="text" id="rem_cnpj" onblur="fetchCompany('rem')"></div>
         <div class="cell span-4"><label>Razão Social</label><input type="text" id="rem_nome"></div>
-        <div class="cell span-6"><label>Endereço</label><input type="text" id="rem_end"></div>
+        <div class="cell span-6"><label>Endereço Completo</label><input type="text" id="rem_end"></div>
     </div>
 
     <div class="bar">2. Dados do Destinatário</div>
     <div class="grid">
         <div class="cell span-2"><label>CNPJ/CPF</label><input type="text" id="dest_cnpj" onblur="fetchCompany('dest')"></div>
         <div class="cell span-4"><label>Razão Social</label><input type="text" id="dest_nome"></div>
-        <div class="cell span-6"><label>Endereço</label><input type="text" id="dest_end"></div>
+        <div class="cell span-6"><label>Endereço Completo</label><input type="text" id="dest_end"></div>
     </div>
 
     <div class="bar">3. Carga e Logística</div>
@@ -87,33 +87,39 @@
         <div class="cell"><label>Valor NFs</label><input type="text" id="val_nfs" value="0.00"></div>
         <div class="cell span-3"><label>Números NF-e</label><input type="text" id="nfe"></div>
     </div>
+
+    <div class="bar">4. Observações e Informações Adicionais</div>
+    <div class="grid">
+        <div class="cell span-6">
+            <label>Detalhes da Coleta / Instruções de Entrega / Dados Extras</label>
+            <textarea id="obs_geral" rows="6" placeholder="Digite aqui informações complementares sobre a carga, horários especiais ou contatos adicionais..."></textarea>
+        </div>
+    </div>
+
+    <div style="margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+        <div style="border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 10px;">ASSINATURA MOTORISTA</div>
+        <div style="border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 10px;">ASSINATURA / CARIMBO RECEBIMENTO</div>
+    </div>
 </div>
 
 <script>
-    const URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co';
-    const KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
+    // URLs limpas para evitar erro de "malformed URL"
+    const SUPABASE_URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co'.trim();
+    const SUPABASE_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE'.trim();
     let _supabase = null;
 
-    // Inicialização ao carregar a página
     window.onload = () => {
         try {
-            _supabase = supabase.createClient(URL, KEY);
+            _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            // Gerar número aleatório ao abrir
+            document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
             
-            // 1. GERA O NÚMERO ALEATÓRIO IMEDIATAMENTE
-            const numeroAleatorio = Math.floor(10000 + Math.random() * 90000);
-            document.getElementById('num_id').innerText = numeroAleatorio;
-            
-            // 2. CONFIGURA AS DATAS (CALENDÁRIO)
             const agora = new Date();
-            const dataLocal = agora.toISOString().slice(0, 16);
-            const dataApenas = agora.toISOString().slice(0, 10);
-            
-            document.getElementById('dt_ini').value = dataLocal;
-            document.getElementById('dt_fim').value = dataLocal;
-            document.getElementById('dt_ent').value = dataApenas;
-            
+            document.getElementById('dt_ini').value = agora.toISOString().slice(0, 16);
+            document.getElementById('dt_fim').value = agora.toISOString().slice(0, 16);
+            document.getElementById('dt_ent').value = agora.toISOString().slice(0, 10);
         } catch (e) {
-            console.error("Erro ao iniciar Supabase:", e);
+            console.error("Falha ao iniciar:", e);
         }
     };
 
@@ -127,18 +133,14 @@
                 document.getElementById(tipo + '_nome').value = data.razao_social;
                 document.getElementById(tipo + '_end').value = `${data.logradouro}, ${data.numero} - ${data.bairro}`;
             }
-        } catch (e) { console.error("Erro na busca do CNPJ"); }
+        } catch (e) { console.error("Erro CNPJ"); }
     }
 
     async function salvarBanco() {
-        if (!_supabase) {
-            _supabase = supabase.createClient(URL, KEY);
-        }
+        if (!_supabase) _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const numeroColeta = document.getElementById('num_id').innerText;
-        
         const dados = {
-            numero_coleta: numeroColeta,
+            numero_coleta: document.getElementById('num_id').innerText,
             rem_nome: document.getElementById('rem_nome').value,
             dest_nome: document.getElementById('dest_nome').value,
             nf_numero: document.getElementById('nfe').value,
@@ -148,30 +150,22 @@
         
         try {
             const { error } = await _supabase.from('coletas_pro').insert([dados]);
-            if (error) {
-                alert("❌ Erro ao salvar no banco: " + error.message);
-            } else {
-                alert("✅ Ordem de Coleta #" + numeroColeta + " salva com sucesso!");
-            }
+            if (error) alert("Erro ao salvar: " + error.message);
+            else alert("✅ Ordem #" + dados.numero_coleta + " salva com sucesso!");
         } catch (err) {
-            alert("❌ Falha crítica de conexão.");
+            alert("Erro de conexão.");
         }
     }
 
     function gerarPDF() {
         const el = document.getElementById('ordem-documento');
         const num = document.getElementById('num_id').innerText;
-        
-        const opt = {
+        html2pdf().set({
             margin: 0,
             filename: `Jobren_Coleta_${num}.pdf`,
             html2canvas: { scale: 3 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        html2pdf().set(opt).from(el).save().then(() => {
-            alert("PDF gerado com sucesso!");
-        });
+        }).from(el).save().then(() => { alert("PDF Gerado!"); });
     }
 </script>
 </body>
