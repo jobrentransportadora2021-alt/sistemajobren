@@ -3,98 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren Transportes | Ordem de Coleta Profissional</title>
+    <title>Jobren Transportes | Ordem de Coleta</title>
+    <!-- 1. SDK do Supabase carregado no topo -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --primary: #003366; --accent: #ffcc00; --bg: #f0f2f5; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); overflow: hidden; }
-        .header { background: var(--primary); color: white; padding: 20px; text-align: center; border-bottom: 4px solid var(--accent); }
-        .form-body { padding: 25px; }
-        .section { margin-bottom: 25px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .section-title { grid-column: span 2; font-weight: bold; color: var(--primary); border-left: 4px solid var(--accent); padding-left: 10px; margin-bottom: 10px; text-transform: uppercase; font-size: 13px; }
+        :root {
+            --primary: #003366;
+            --accent: #ffcc00;
+            --bg: #e9ecef;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 850px; margin: auto; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow: hidden; }
+        .header { background-color: var(--primary); color: white; padding: 25px; text-align: center; border-bottom: 5px solid var(--accent); }
+        .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; }
+        .form-body { padding: 30px; }
+        
+        .section-title { 
+            font-size: 13px; font-weight: bold; color: var(--primary); 
+            text-transform: uppercase; border-left: 4px solid var(--accent); 
+            padding-left: 10px; margin: 25px 0 15px 0;
+        }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .full { grid-column: span 2; }
-        label { display: block; font-size: 11px; color: #555; margin-bottom: 4px; font-weight: 600; }
-        input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
-        input:focus { border-color: var(--primary); outline: none; background: #f9f9f9; }
-        .btn-enviar { width: 100%; padding: 18px; background: #28a745; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-enviar:hover { background: #218838; transform: translateY(-2px); }
-        .loading-text { font-size: 10px; color: #007bff; display: none; }
+
+        label { display: block; font-size: 11px; margin-bottom: 5px; color: #555; font-weight: bold; }
+        input, textarea { 
+            width: 100%; padding: 12px; border: 1px solid #ccc; 
+            border-radius: 6px; box-sizing: border-box; font-size: 14px; 
+        }
+        input:focus { border-color: var(--primary); outline: none; background: #fffdf4; }
+
+        button { 
+            width: 100%; padding: 18px; background-color: #28a745; 
+            color: white; border: none; border-radius: 6px; font-size: 16px; 
+            font-weight: bold; cursor: pointer; margin-top: 30px; transition: 0.3s;
+        }
+        button:hover { background-color: #218838; transform: translateY(-2px); }
+        .loading { color: #007bff; font-size: 11px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1 style="margin:0;">JOBREN TRANSPORTES</h1>
-        <span style="font-size: 12px; opacity: 0.9;">Módulo de Coleta Inteligente</span>
+        <h1>Jobren Transportes</h1>
+        <p style="margin: 5px 0 0; opacity: 0.8;">Emissão de Ordem de Coleta Inteligente</p>
     </div>
 
     <div class="form-body">
-        <!-- REMETENTE -->
-        <div class="section">
-            <div class="section-title">1. Dados do Remetente (Origem)</div>
+        <!-- SEÇÃO REMETENTE -->
+        <div class="section-title">1. Dados do Remetente (Origem)</div>
+        <div class="grid">
             <div class="full">
-                <label>CNPJ REMETENTE</label>
-                <input type="text" id="rem_cnpj" placeholder="Busca automática..." onblur="buscarEmpresa('rem')">
-                <span id="load_rem" class="loading-text">Consultando base de dados...</span>
+                <label>CNPJ DO REMETENTE</label>
+                <input type="text" id="rem_cnpj" placeholder="Digite para buscar..." onblur="buscarEmpresa('rem')">
+                <span id="load_rem" class="loading">Consultando BrasilAPI...</span>
             </div>
             <div class="full"><label>RAZÃO SOCIAL</label><input type="text" id="rem_nome" readonly></div>
             <div class="full"><label>ENDEREÇO DE COLETA</label><input type="text" id="rem_end" readonly></div>
         </div>
 
-        <!-- DESTINATÁRIO -->
-        <div class="section">
-            <div class="section-title">2. Dados do Destinatário (Entrega)</div>
+        <!-- SEÇÃO DESTINATÁRIO -->
+        <div class="section-title">2. Dados do Destinatário (Destino)</div>
+        <div class="grid">
             <div class="full">
-                <label>CNPJ DESTINATÁRIO</label>
-                <input type="text" id="dest_cnpj" placeholder="Busca automática..." onblur="buscarEmpresa('dest')">
-                <span id="load_dest" class="loading-text">Consultando base de dados...</span>
+                <label>CNPJ DO DESTINATÁRIO</label>
+                <input type="text" id="dest_cnpj" placeholder="Digite para buscar..." onblur="buscarEmpresa('dest')">
+                <span id="load_dest" class="loading">Consultando BrasilAPI...</span>
             </div>
             <div class="full"><label>RAZÃO SOCIAL</label><input type="text" id="dest_nome" readonly></div>
             <div class="full"><label>ENDEREÇO DE ENTREGA</label><input type="text" id="dest_end" readonly></div>
         </div>
 
-        <!-- DADOS DA CARGA -->
-        <div class="section">
-            <div class="section-title">3. Informações da Carga e Documentação</div>
-            <div><label>NÚMERO DA NF-e</label><input type="text" id="nf_numero" placeholder="Ex: 12345"></div>
-            <div><label>PESO TOTAL (KG)</label><input type="number" id="peso" placeholder="0.00"></div>
-            <div><label>VOLUMES</label><input type="number" id="volumes" placeholder="Ex: 10"></div>
-            <div><label>VALOR DA MERCADORIA (R$)</label><input type="text" id="valor" placeholder="Ex: 1.500,00"></div>
+        <!-- SEÇÃO CARGA -->
+        <div class="section-title">3. Dados da Carga e NF-e</div>
+        <div class="grid">
+            <div><label>NÚMERO DA NF-e</label><input type="text" id="nf_numero"></div>
+            <div><label>PESO (KG)</label><input type="number" id="peso"></div>
+            <div><label>VOLUMES</label><input type="number" id="volumes"></div>
+            <div><label>VALOR MERCADORIA (R$)</label><input type="text" id="valor"></div>
             <div class="full">
-                <label>OBSERVAÇÕES DA ORDEM</label>
-                <textarea id="obs" rows="3" placeholder="Instruções especiais de coleta ou entrega..."></textarea>
+                <label>OBSERVAÇÕES GERAIS</label>
+                <textarea id="obs" rows="3" placeholder="Ex: Carga frágil, coletar após as 14h..."></textarea>
             </div>
         </div>
 
-        <button class="btn-enviar" onclick="enviarDados()">GERAR ORDEM DE COLETA</button>
+        <button onclick="enviarParaSupabase()">SALVAR E GERAR ORDEM</button>
     </div>
 </div>
 
 <script>
-    const SUPABASE_URL = 'SUA_URL';
-    const SUPABASE_KEY = 'SUA_CHAVE';
+    // 2. CONFIGURAÇÃO - Inicialize as variáveis PRIMEIRO
+    const SUPABASE_URL = 'SUA_URL_AQUI';
+    const SUPABASE_KEY = 'SUA_CHAVE_AQUI';
+    
+    // Inicializa o cliente fora das funções para estar disponível globalmente
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // 3. FUNÇÃO DE BUSCA DE CNPJ
     async function buscarEmpresa(tipo) {
-        const cnpj = document.getElementById(`${tipo}_cnpj`).value.replace(/\D/g, '');
-        if (cnpj.length !== 14) return;
+        const inputCnpj = document.getElementById(`${tipo}_cnpj`);
+        const cnpj = inputCnpj.value.replace(/\D/g, '');
+        const loading = document.getElementById(`load_${tipo}`);
 
-        document.getElementById(`load_${tipo}`).style.display = 'block';
-
-        try {
-            const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-            const d = await res.json();
-            if (d.razao_social) {
-                document.getElementById(`${tipo}_nome`).value = d.razao_social;
-                document.getElementById(`${tipo}_end`).value = `${d.logradouro}, ${d.numero} - ${d.municipio}/${d.uf}`;
+        if (cnpj.length === 14) {
+            loading.style.display = 'block';
+            try {
+                const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+                const data = await response.json();
+                
+                if (data.razao_social) {
+                    document.getElementById(`${tipo}_nome`).value = data.razao_social;
+                    document.getElementById(`${tipo}_end`).value = `${data.logradouro}, ${data.numero} - ${data.bairro}, ${data.municipio}/${data.uf}`;
+                } else {
+                    alert("CNPJ não encontrado.");
+                }
+            } catch (error) {
+                console.error("Erro ao buscar:", error);
+            } finally {
+                loading.style.display = 'none';
             }
-        } catch (e) { console.error("Erro na busca"); }
-        document.getElementById(`load_${tipo}`).style.display = 'none';
+        }
     }
 
-    async function enviarDados() {
+    // 4. FUNÇÃO DE SALVAR
+    async function enviarParaSupabase() {
+        // Coleta os dados dos campos
         const dados = {
             rem_cnpj: document.getElementById('rem_cnpj').value,
             rem_nome: document.getElementById('rem_nome').value,
@@ -104,16 +140,31 @@
             peso: document.getElementById('peso').value,
             volumes: document.getElementById('volumes').value,
             observacao: document.getElementById('obs').value,
-            empresa_log: 'Jobren Transportes'
+            empresa_emitente: 'Jobren Transportes',
+            data_criacao: new Date().toISOString()
         };
 
-        const { error } = await _supabase.from('coletas_pro').insert([dados]);
-        if (error) alert("Erro ao salvar!");
-        else {
-            alert("Ordem salva com sucesso!");
-            window.print(); // Opcional: abre a tela de impressão estilo comprovante
+        // Validação simples
+        if (!dados.rem_cnpj || !dados.nf_numero) {
+            alert("Por favor, preencha pelo menos o CNPJ do Remetente e o número da NF.");
+            return;
+        }
+
+        try {
+            // Insere na tabela 'coletas_pro' (Certifique-se que o nome no SQL é este)
+            const { error } = await _supabase.from('coletas_pro').insert([dados]);
+
+            if (error) throw error;
+
+            alert("Ordem salva com sucesso na Jobren Transportes!");
+            window.print(); // Abre para imprimir a ordem
+            location.reload(); // Limpa a tela
+        } catch (error) {
+            console.error("Erro Supabase:", error);
+            alert("Erro ao salvar: " + error.message);
         }
     }
 </script>
+
 </body>
 </html>
