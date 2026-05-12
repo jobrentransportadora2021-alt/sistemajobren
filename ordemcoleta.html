@@ -4,86 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jobren Transportes | Ordem de Coleta</title>
-    <link rel="icon" href="data:,">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        :root { --primary: #003366; --accent: #ffcc00; --bg: #f4f7f6; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: var(--bg); margin: 0; padding: 10px; }
+        :root { --primary: #003366; --accent: #ffcc00; --border: #000; }
         
-        /* Container Principal do Documento */
+        body { font-family: Arial, sans-serif; background-color: #f0f0f0; margin: 0; padding: 20px; }
+
+        /* Estilo Folha A4 */
         #ordem-documento { 
-            max-width: 800px; 
+            width: 210mm; /* Largura padrão A4 */
+            min-height: 297mm;
             margin: auto; 
             background: white; 
-            border: 1px solid #ddd;
-            padding-bottom: 10px;
+            padding: 15mm;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
         }
 
+        /* Cabeçalho Robusto */
         .header { 
-            background-color: var(--primary); 
-            color: white; 
-            padding: 15px; 
-            text-align: center; 
-            border-bottom: 4px solid var(--accent); 
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #fff;
         }
-        .header h1 { margin: 0; font-size: 20px; letter-spacing: 1px; }
-        .header p { margin: 5px 0 0; font-size: 12px; opacity: 0.9; }
+        .header h1 { margin: 0; font-size: 24px; color: var(--primary); font-weight: bold; }
+        .header p { margin: 5px 0 0; font-size: 14px; font-weight: bold; text-transform: uppercase; }
 
-        .form-body { padding: 20px; }
-
+        /* Seções Estilo Formulário */
+        .section {
+            border: 1px solid var(--border);
+            margin-bottom: 15px;
+        }
         .section-title { 
-            font-size: 11px; 
-            font-weight: bold; 
-            color: var(--primary); 
-            text-transform: uppercase; 
-            background: #f8f9fa;
-            border-left: 4px solid var(--accent); 
-            padding: 5px 10px; 
-            margin: 15px 0 10px 0; 
+            background-color: #eeeeee;
+            border-bottom: 1px solid var(--border);
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
         }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .full { grid-column: span 2; }
-
-        label { display: block; font-size: 10px; margin-bottom: 3px; color: #666; font-weight: bold; text-transform: uppercase; }
+        .row { display: flex; border-bottom: 1px solid #eee; }
+        .row:last-child { border-bottom: none; }
+        
+        .col { 
+            padding: 8px 10px; 
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+        }
+        .col:last-child { border-right: none; }
+        
+        label { 
+            font-size: 9px; 
+            color: #444; 
+            font-weight: bold; 
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
         
         input, textarea { 
-            width: 100%; 
-            padding: 8px; 
-            border: 1px solid #ccc; 
-            border-radius: 4px; 
-            box-sizing: border-box; 
-            font-size: 13px;
-            background: #fff;
-        }
-
-        /* Botões */
-        .no-print { padding: 0 20px 20px; display: flex; gap: 10px; }
-        button { 
-            flex: 1; 
-            padding: 15px; 
             border: none; 
-            border-radius: 5px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.2s; 
-            font-size: 14px;
+            font-size: 13px; 
+            width: 100%; 
+            outline: none;
+            background: transparent;
+            font-family: Arial, sans-serif;
         }
-        .btn-save { background-color: #28a745; color: white; }
-        .btn-download { background-color: #007bff; color: white; }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
 
-        .loading { color: #007bff; font-size: 10px; display: none; }
+        /* Botões flutuantes para não atrapalhar o PDF */
+        .no-print-area {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .btn-save { background: #28a745; }
+        .btn-pdf { background: #007bff; }
 
-        /* REGRAS PARA O PDF (ROBUSTEZ) */
+        /* Ajustes específicos para o PDF */
         @media print {
-            body { background: white; padding: 0; }
-            #ordem-documento { border: none; width: 100%; box-shadow: none; }
-            .no-print { display: none !important; }
-            input, textarea { border: 1px solid #eee !important; background: transparent !important; }
+            body { background: none; padding: 0; }
+            #ordem-documento { border: none; margin: 0; padding: 10mm; }
+            .no-print-area { display: none !important; }
         }
     </style>
 </head>
@@ -95,47 +118,51 @@
         <p>DOCUMENTO AUXILIAR DE ORDEM DE COLETA</p>
     </div>
 
-    <div class="form-body">
+    <div class="section">
         <div class="section-title">1. Dados do Remetente (Origem)</div>
-        <div class="grid">
-            <div class="full">
-                <label>CNPJ / CPF</label>
-                <input type="text" id="rem_cnpj" onblur="buscarEmpresa('rem')" placeholder="Digite o CNPJ para buscar...">
-                <span id="load_rem" class="loading">Consultando BrasilAPI...</span>
-            </div>
-            <div class="full"><label>Razão Social</label><input type="text" id="rem_nome"></div>
-            <div class="full"><label>Endereço de Coleta</label><input type="text" id="rem_end"></div>
+        <div class="row">
+            <div class="col" style="flex: 1;"><label>CNPJ/CPF</label><input type="text" id="rem_cnpj" value="53566595000103" onblur="buscarEmpresa('rem')"></div>
+            <div class="col" style="flex: 2;"><label>Razão Social</label><input type="text" id="rem_nome" value="JOBREN TRANSPORTES LTDA"></div>
         </div>
-
-        <div class="section-title">2. Dados do Destinatário (Destino)</div>
-        <div class="grid">
-            <div class="full">
-                <label>CNPJ / CPF</label>
-                <input type="text" id="dest_cnpj" onblur="buscarEmpresa('dest')" placeholder="Digite o CNPJ para buscar...">
-                <span id="load_dest" class="loading">Consultando BrasilAPI...</span>
-            </div>
-            <div class="full"><label>Razão Social</label><input type="text" id="dest_nome"></div>
-            <div class="full"><label>Endereço de Entrega</label><input type="text" id="dest_end"></div>
-        </div>
-
-        <div class="section-title">3. Detalhes da Carga e Documentação</div>
-        <div class="grid">
-            <div><label>Nota Fiscal (NF-e)</label><input type="text" id="nf_numero"></div>
-            <div><label>Valor da Mercadoria</label><input type="text" id="valor" placeholder="R$ 0,00"></div>
-            <div><label>Peso Total (KG)</label><input type="number" id="peso"></div>
-            <div><label>Qtd Volumes</label><input type="number" id="volumes"></div>
-            <div class="full"><label>Observações / Instruções Especiais</label>
-            <textarea id="obs" rows="3"></textarea></div>
+        <div class="row">
+            <div class="col" style="flex: 1;"><label>Endereço de Coleta</label><input type="text" id="rem_end" value="DR VIDAL REIS, 515 PARQUE NOVO MUNDO, SAO PAULO/SP"></div>
         </div>
     </div>
 
-    <div class="no-print">
-        <button class="btn-save" onclick="enviarParaSupabase()">SALVAR NO SISTEMA</button>
-        <button class="btn-download" onclick="baixarPDF()">GERAR PDF (A4)</button>
+    <div class="section">
+        <div class="section-title">2. Dados do Destinatário (Destino)</div>
+        <div class="row">
+            <div class="col" style="flex: 1;"><label>CNPJ/CPF</label><input type="text" id="dest_cnpj" value="53566595000103" onblur="buscarEmpresa('dest')"></div>
+            <div class="col" style="flex: 2;"><label>Razão Social</label><input type="text" id="dest_nome" value="JOBREN TRANSPORTES LTDA"></div>
+        </div>
+        <div class="row">
+            <div class="col" style="flex: 1;"><label>Endereço de Entrega</label><input type="text" id="dest_end"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">3. Detalhes da Carga</div>
+        <div class="row">
+            <div class="col" style="flex: 1;"><label>Nota Fiscal (NF-e)</label><input type="text" id="nf_numero" placeholder="Ex: 123456"></div>
+            <div class="col" style="flex: 1;"><label>Valor Mercadoria</label><input type="text" id="valor" placeholder="R$ 0,00"></div>
+        </div>
+        <div class="row">
+            <div class="col" style="flex: 1;"><label>Peso Total (KG)</label><input type="number" id="peso"></div>
+            <div class="col" style="flex: 1;"><label>Qtd Volumes</label><input type="number" id="volumes"></div>
+        </div>
+        <div class="row">
+            <div class="col" style="flex: 1;"><label>Observações</label><textarea id="obs" rows="4"></textarea></div>
+        </div>
     </div>
 </div>
 
+<div class="no-print-area">
+    <button class="btn btn-save" onclick="enviarParaSupabase()">SALVAR NO BANCO</button>
+    <button class="btn btn-pdf" onclick="baixarPDF()">GERAR PDF PROFISSIONAL</button>
+</div>
+
 <script>
+    // Inicialização Supabase
     var _supabase = null;
     const SUPABASE_URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
@@ -146,11 +173,25 @@
         }
     };
 
+    // Funções de Busca, Envio e PDF (Mantidas e otimizadas)
+    function baixarPDF() {
+        const elemento = document.getElementById('ordem-documento');
+        const nf = document.getElementById('nf_numero').value || "S_NF";
+        
+        const opcoes = {
+            margin: 0,
+            filename: `OC_Jobren_NF_${nf}.pdf`,
+            image: { type: 'jpeg', quality: 1 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opcoes).from(elemento).save();
+    }
+
     async function buscarEmpresa(tipo) {
         var cnpj = document.getElementById(tipo + '_cnpj').value.replace(/\D/g, '');
         if (cnpj.length !== 14) return;
-        
-        document.getElementById('load_' + tipo).style.display = 'inline';
         try {
             var res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
             var d = await res.json();
@@ -158,13 +199,11 @@
                 document.getElementById(tipo + '_nome').value = d.razao_social;
                 document.getElementById(tipo + '_end').value = `${d.logradouro}, ${d.numero} - ${d.municipio}/${d.uf}`;
             }
-        } catch (e) { console.error("Erro na busca", e); }
-        document.getElementById('load_' + tipo).style.display = 'none';
+        } catch (e) { console.error(e); }
     }
 
     async function enviarParaSupabase() {
         if (!_supabase) return alert("Erro de conexão.");
-        
         var dados = {
             rem_cnpj: document.getElementById('rem_cnpj').value,
             rem_nome: document.getElementById('rem_nome').value,
@@ -177,40 +216,11 @@
             empresa_emitente: 'Jobren Transportes',
             data_criacao: new Date().toISOString()
         };
-
         try {
             const { error } = await _supabase.from('coletas_pro').insert([dados]);
             if (error) throw error;
-            alert("✅ Ordem salva com sucesso!");
+            alert("Ordem salva com sucesso!");
         } catch (e) { alert("Erro: " + e.message); }
-    }
-
-    function baixarPDF() {
-        const elemento = document.getElementById('ordem-documento');
-        const nf = document.getElementById('nf_numero').value || "S_NF";
-        
-        // Configurações para garantir página única e nitidez
-        const opcoes = {
-            margin: [10, 10, 10, 10],
-            filename: `OC_Jobren_NF_${nf}.pdf`,
-            image: { type: 'jpeg', quality: 1.0 },
-            html2canvas: { 
-                scale: 3, 
-                logging: false, 
-                useCORS: true,
-                letterRendering: true 
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        // Gerar o PDF
-        html2pdf().set(opcoes).from(elemento).toPdf().get('pdf').then(function (pdf) {
-            // Garante que não haverá páginas em branco extras
-            var totalPages = pdf.internal.getNumberOfPages();
-            for (var i = totalPages; i > 1; i--) {
-                pdf.deletePage(i);
-            }
-        }).save();
     }
 </script>
 </body>
