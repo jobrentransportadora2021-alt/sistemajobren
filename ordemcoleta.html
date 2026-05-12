@@ -50,14 +50,16 @@
 
     <div class="bar">1. Remetente</div>
     <div class="grid">
-        <div class="cell span-2"><label>CNPJ</label><input type="text" id="rem_cnpj"></div>
-        <div class="cell span-4"><label>Razão Social</label><input type="text" id="rem_nome"></div>
+        <div class="cell span-2"><label>CNPJ (Somente Números)</label><input type="text" id="rem_cnpj" onblur="fetchCompany('rem')" maxlength="14"></div>
+        <div class="cell span-4"><label>Razão Social</label><input type="text" id="rem_nome" readonly></div>
+        <div class="cell span-6"><label>Endereço</label><input type="text" id="rem_end" readonly></div>
     </div>
 
     <div class="bar">2. Destinatário</div>
     <div class="grid">
-        <div class="cell span-2"><label>CNPJ</label><input type="text" id="dest_cnpj"></div>
-        <div class="cell span-4"><label>Razão Social</label><input type="text" id="dest_nome"></div>
+        <div class="cell span-2"><label>CNPJ (Somente Números)</label><input type="text" id="dest_cnpj" onblur="fetchCompany('dest')" maxlength="14"></div>
+        <div class="cell span-4"><label>Razão Social</label><input type="text" id="dest_nome" readonly></div>
+        <div class="cell span-6"><label>Endereço</label><input type="text" id="dest_end" readonly></div>
     </div>
 
     <div class="bar">3. Carga</div>
@@ -79,6 +81,42 @@
     function reset() {
         document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
         document.querySelectorAll('input, textarea').forEach(i => i.value = "");
+        const agora = new Date().toISOString();
+        document.getElementById('dt_ini').value = agora.slice(0,16);
+    }
+
+    // NOVA FUNÇÃO DE BUSCA CNPJ MELHORADA
+    async function fetchCompany(tipo) {
+        const campoCnpj = document.getElementById(tipo + '_cnpj');
+        const cnpj = campoCnpj.value.replace(/\D/g, '');
+        
+        if (cnpj.length !== 14) {
+            limparCamposEndereco(tipo);
+            return;
+        }
+
+        // Feedback visual de carregamento
+        document.getElementById(tipo + '_nome').value = "Buscando...";
+
+        try {
+            const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+            
+            if (!res.ok) throw new Error('Não encontrado');
+            
+            const data = await res.json();
+
+            document.getElementById(tipo + '_nome').value = data.razao_social || data.nome_fantasia || "Não informado";
+            document.getElementById(tipo + '_end').value = `${data.logradouro}, ${data.numero} - ${data.bairro}, ${data.municipio}/${data.uf}`;
+            
+        } catch (e) {
+            alert("CNPJ não encontrado ou erro no sistema de busca.");
+            limparCamposEndereco(tipo);
+        }
+    }
+
+    function limparCamposEndereco(tipo) {
+        document.getElementById(tipo + '_nome').value = "";
+        document.getElementById(tipo + '_end').value = "";
     }
 
     async function salvarTudo() {
@@ -86,37 +124,30 @@
         const fileName = `coleta_${num}.pdf`;
 
         try {
-            // 1. Gerar PDF
             const element = document.getElementById('ordem-documento');
             const pdfBlob = await html2pdf().set({ margin: 0, filename: fileName, html2canvas: { scale: 2 } }).from(element).output('blob');
 
-            // 2. Upload PDF para o Storage
-            const { data: uploadData, error: uploadError } = await supabaseClient.storage
-                .from('documentos_coleta')
-                .upload(`pdf/${fileName}`, pdfBlob, { contentType: 'application/pdf', upsert: true });
+            await supabaseClient.storage.from('documentos_coleta').upload(`pdf/${fileName}`, pdfBlob, { contentType: 'application/pdf', upsert: true });
 
-            if (uploadError) throw uploadError;
-
-            // 3. Pegar URL do arquivo
             const { data: urlData } = supabaseClient.storage.from('documentos_coleta').getPublicUrl(`pdf/${fileName}`);
 
-            // 4. Salvar dados na Tabela (incluindo o link do PDF)
             const { error: dbError } = await supabaseClient.from('coletas_pro').insert([{
                 numero_coleta: parseInt(num),
+                rem_cnpj: document.getElementById('rem_cnpj').value,
                 rem_nome: document.getElementById('rem_nome').value,
+                dest_cnpj: document.getElementById('dest_cnpj').value,
                 dest_nome: document.getElementById('dest_nome').value,
                 empresa_log: 'Jobren Transportes',
-                url_documento: urlData.publicUrl // Salva o link do PDF aqui
+                url_documento: urlData.publicUrl
             }]);
 
             if (dbError) throw dbError;
 
-            alert("✅ Sucesso! Dados e PDF salvos.");
+            alert("✅ Salvo com sucesso!");
             reset();
 
         } catch (err) {
-            console.error(err);
-            alert("Erro: " + err.message);
+            alert("Erro ao processar: " + err.message);
         }
     }
 
