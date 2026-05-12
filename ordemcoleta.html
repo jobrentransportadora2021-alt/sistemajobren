@@ -3,220 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren Transportes | Ordem de Coleta</title>
+    <title>Jobren Transportes | Emissor</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         :root { 
-            --jobren-blue: #003366; 
-            --jobren-black: #1a1a1a; 
-            --accent-gold: #ffcc00;
-            --light-gray: #f8f9fa;
+            --blue: #003366; 
+            --black: #1a1a1a; 
+            --gold: #ffcc00;
         }
         
-        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #2c3e50; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #1e272e; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
 
-        /* Container Principal (A4) */
-        #ordem-coleta { 
+        /* Documento A4 */
+        #ordem-documento { 
             width: 100%; 
             max-width: 210mm; 
             min-height: 297mm; 
             background: white; 
             padding: 12mm; 
             box-sizing: border-box; 
-            border-radius: 4px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
         }
 
-        /* Cabeçalho Premium */
-        .header-main { 
+        /* Cabeçalho Jobren */
+        .header { 
             display: flex; 
             justify-content: space-between; 
-            align-items: flex-start;
-            border-bottom: 4px solid var(--jobren-blue);
+            border-bottom: 4px solid var(--blue);
             padding-bottom: 15px;
             margin-bottom: 20px;
         }
-        .brand-text h1 { margin: 0; color: var(--jobren-blue); font-size: 28px; font-weight: 800; text-transform: uppercase; }
-        .brand-text p { margin: 2px 0; font-size: 11px; color: #444; font-weight: 600; }
+        .brand h1 { margin: 0; color: var(--blue); font-size: 28px; font-weight: 800; text-transform: uppercase; }
+        .brand p { margin: 2px 0; font-size: 11px; color: #333; font-weight: 600; }
         
-        .id-badge { 
-            background: var(--jobren-black); 
+        .id-box { 
+            background: var(--black); 
             color: white; 
             padding: 12px 25px; 
-            border-radius: 6px; 
+            border-radius: 4px; 
             text-align: center;
         }
-        .id-badge span { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent-gold); }
-        .id-badge h2 { margin: 0; font-size: 26px; }
+        .id-box span { font-size: 10px; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
+        .id-box h2 { margin: 0; font-size: 26px; }
 
-        /* Tabela Estilizada e Responsiva */
-        .section-bar { 
-            background: var(--jobren-blue); 
+        /* Grid de Dados */
+        .bar { 
+            background: var(--blue); 
             color: white; 
             padding: 8px 12px; 
             font-size: 12px; 
             font-weight: bold; 
             text-transform: uppercase;
-            border-radius: 4px 4px 0 0;
             margin-top: 15px;
         }
-        .data-grid { 
+        .grid { 
             display: grid; 
             grid-template-columns: repeat(4, 1fr); 
             border: 1px solid #000;
             margin-bottom: 10px;
         }
-        .data-cell { 
+        .cell { 
             padding: 8px; 
-            border-right: 1px solid #eee; 
-            border-bottom: 1px solid #eee; 
+            border-right: 1px solid #ddd; 
+            border-bottom: 1px solid #ddd; 
             display: flex;
             flex-direction: column;
         }
-        .data-cell:last-child { border-right: none; }
-        .w-100 { grid-column: span 4; }
-        .w-50 { grid-column: span 2; }
+        .cell:last-child { border-right: none; }
+        .span-4 { grid-column: span 4; }
+        .span-2 { grid-column: span 2; }
 
-        label { font-size: 9px; font-weight: 800; color: var(--jobren-blue); text-transform: uppercase; margin-bottom: 3px; }
+        label { font-size: 9px; font-weight: 800; color: var(--blue); text-transform: uppercase; margin-bottom: 3px; }
         input, textarea { border: none; outline: none; font-size: 13px; color: #000; font-family: inherit; background: transparent; width: 100%; }
         input:focus { background: #fffde7; }
 
-        /* Assinaturas */
-        .footer-sig { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        .sig-line { border-top: 1.5px solid #000; text-align: center; padding-top: 8px; font-size: 11px; font-weight: bold; }
+        /* Rodapé */
+        .footer { margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .line { border-top: 1px solid #000; text-align: center; padding-top: 10px; font-size: 11px; font-weight: bold; }
 
-        /* Painel Lateral de Controle */
-        .admin-panel { position: fixed; right: 20px; top: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
+        /* Botões Fixos */
+        .actions { position: fixed; right: 20px; top: 20px; display: flex; flex-direction: column; gap: 10px; }
         .btn { 
-            padding: 14px 20px; border: none; border-radius: 8px; color: white; font-weight: bold; 
-            cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            padding: 15px 25px; border: none; border-radius: 4px; color: white; font-weight: bold; 
+            cursor: pointer; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
         .btn-save { background: #27ae60; }
-        .btn-pdf { background: var(--jobren-blue); }
-        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn-pdf { background: var(--blue); }
+        .btn:hover { opacity: 0.9; transform: scale(1.05); }
 
-        @media print { .admin-panel { display: none; } #ordem-coleta { box-shadow: none; padding: 0; border: none; } }
-        @media (max-width: 600px) { .data-grid { grid-template-columns: 1fr; } .data-cell { border-right: none; } .w-50, .w-100 { grid-column: span 1; } }
+        @media print { .actions { display: none; } #ordem-documento { box-shadow: none; padding: 0; } }
     </style>
 </head>
 <body>
 
-<div class="admin-panel">
-    <button class="btn btn-save" onclick="salvarNoBanco()">💾 SALVAR NO BANCO</button>
-    <button class="btn btn-pdf" onclick="gerarPDF()">📄 GERAR PDF FINAL</button>
+<div class="actions">
+    <button class="btn btn-save" onclick="salvarBanco()">💾 SALVAR NO BANCO</button>
+    <button class="btn btn-pdf" onclick="gerarPDF()">📄 GERAR PDF</button>
 </div>
 
-<div id="ordem-coleta">
-    <div class="header-main">
-        <div class="brand-text">
+<div id="ordem-documento">
+    <div class="header">
+        <div class="brand">
             <h1>JOBREN TRANSPORTES</h1>
-            <p>RUA THOMAS LOSITO, 8 - PARQUE NOVO MUNDO - SAO PAULO/SP [cite: 14, 15, 16]</p>
-            <p>CNPJ: 53.566.595/0001-03 [cite: 23, 29] | Fone: (11) 98111-6990 [cite: 62]</p>
-            <p>IE: 132.867.924.118 [cite: 61] | CEP: 02181-050 [cite: 25, 31]</p>
+            <p>RUA THOMAS LOSITO, 8 - PQ NOVO MUNDO - SAO PAULO/SP</p>
+            <p>CNPJ: 53.566.595/0001-03 | FONE: (11) 98111-6990</p>
+            <p>IE: 132.867.924.118 | CEP: 02181-050</p>
         </div>
-        <div class="id-badge">
+        <div class="id-box">
             <span>Ordem de Coleta</span>
-            <h2 id="num_coleta_txt">19051</h2> [cite: 22]
+            <h2 id="num_id">19051</h2>
         </div>
     </div>
 
-    <div class="section-bar">1. Dados do Remetente</div>
-    <div class="data-grid">
-        <div class="data-cell w-50">
-            <label>CNPJ Remetente (Pressione TAB)</label>
-            <input type="text" id="rem_cnpj" onblur="fetchCompany('rem')" placeholder="00.000.000/0000-00"> [cite: 23, 27]
+    <div class="bar">1. Dados do Remetente</div>
+    <div class="grid">
+        <div class="cell span-2">
+            <label>CNPJ Remetente (Preencher p/ buscar)</label>
+            <input type="text" id="rem_cnpj" onblur="fetchCompany('rem')" placeholder="00.000.000/0000-00">
         </div>
-        <div class="data-cell w-50">
+        <div class="cell span-2">
             <label>Razão Social</label>
-            <input type="text" id="rem_nome"> [cite: 27]
+            <input type="text" id="rem_nome">
         </div>
-        <div class="data-cell w-100">
+        <div class="cell span-4">
             <label>Endereço de Coleta</label>
-            <input type="text" id="rem_end"> [cite: 28]
+            <input type="text" id="rem_end">
         </div>
     </div>
 
-    <div class="section-bar">2. Dados do Destinatário</div>
-    <div class="data-grid">
-        <div class="data-cell w-50">
-            <label>CNPJ Destinatário (Pressione TAB)</label>
-            <input type="text" id="dest_cnpj" onblur="fetchCompany('dest')"> [cite: 29]
+    <div class="bar">2. Dados do Destinatário</div>
+    <div class="grid">
+        <div class="cell span-2">
+            <label>CNPJ Destinatário</label>
+            <input type="text" id="dest_cnpj" onblur="fetchCompany('dest')">
         </div>
-        <div class="data-cell w-50">
+        <div class="cell span-2">
             <label>Razão Social</label>
-            <input type="text" id="dest_nome"> [cite: 29]
+            <input type="text" id="dest_nome">
         </div>
-        <div class="data-cell w-100">
+        <div class="cell span-4">
             <label>Endereço de Entrega</label>
-            <input type="text" id="dest_end"> [cite: 31]
+            <input type="text" id="dest_end">
         </div>
     </div>
 
-    <div class="section-bar">3. Dados da Carga</div>
-    <div class="data-grid">
-        <div class="data-cell"><label>Qtd Volumes</label><input type="number" id="volumes" value="1"></div> [cite: 37]
-        <div class="data-cell"><label>Peso (KG)</label><input type="text" id="peso" value="0.00"></div> [cite: 56]
-        <div class="data-cell"><label>Valor NFs</label><input type="text" id="valor_nfs" value="0.00"></div> [cite: 67]
-        <div class="data-cell"><label>NF-e</label><input type="text" id="nf_lista"></div> [cite: 41]
-        <div class="data-cell w-50"><label>Tomador do Frete</label><input type="text" id="tomador" value="REMETENTE"></div> [cite: 38]
-        <div class="data-cell w-50"><label>Observações</label><textarea id="obs" rows="2"></textarea></div> [cite: 42, 45]
+    <div class="bar">3. Especificações</div>
+    <div class="grid">
+        <div class="cell"><label>Volumes</label><input type="number" id="vols" value="1"></div>
+        <div class="cell"><label>Peso (KG)</label><input type="text" id="peso" value="0.00"></div>
+        <div class="cell"><label>Valor NFs</label><input type="text" id="val" value="0.00"></div>
+        <div class="cell"><label>NF-e</label><input type="text" id="nfe"></div>
+        <div class="cell span-2"><label>Tomador</label><input type="text" id="tomador" value="REMETENTE"></div>
+        <div class="cell span-2"><label>Observações</label><textarea id="obs" rows="2"></textarea></div>
     </div>
 
-    <div class="footer-sig">
-        <div class="sig-line">ASSINATURA MOTORISTA</div> [cite: 48, 72]
-        <div class="sig-line">CARIMBO/ASSINATURA RECEBIMENTO</div> [cite: 72]
+    <div class="footer">
+        <div class="line">ASSINATURA MOTORISTA</div>
+        <div class="line">ASSINATURA / CARIMBO RECEBIMENTO</div>
     </div>
 </div>
 
 <script>
-    const S_URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co';
-    const S_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
+    // Configurações Supabase
+    const URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co';
+    const KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
     let _supabase = null;
 
-    // Inicialização
-    window.onload = function() {
-        _supabase = supabase.createClient(S_URL, S_KEY);
-        // Gera número aleatório similar ao exemplo [cite: 22]
-        document.getElementById('num_coleta_txt').innerText = Math.floor(10000 + Math.random() * 90000);
+    window.onload = () => {
+        _supabase = supabase.createClient(URL, KEY);
+        document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
     };
 
-    // FUNÇÃO CORRIGIDA: fetchCompany
+    // Função de busca automática (API Pública)
     async function fetchCompany(tipo) {
         const cnpj = document.getElementById(tipo + '_cnpj').value.replace(/\D/g, '');
         if (cnpj.length !== 14) return;
         
         try {
-            const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-            const data = await response.json();
+            const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+            const data = await res.json();
             
             if (data.razao_social) {
                 document.getElementById(tipo + '_nome').value = data.razao_social;
                 document.getElementById(tipo + '_end').value = `${data.logradouro}, ${data.numero} - ${data.bairro}, ${data.municipio}/${data.uf}`;
             }
-        } catch (error) {
-            console.error("Erro ao buscar CNPJ:", error);
-        }
+        } catch (e) { console.error("Erro busca CNPJ"); }
     }
 
-    async function salvarNoBanco() {
-        const payload = {
-            numero_coleta: document.getElementById('num_coleta_txt').innerText,
+    async function salvarBanco() {
+        const dados = {
+            numero_coleta: document.getElementById('num_id').innerText,
             rem_nome: document.getElementById('rem_nome').value,
-            nf_numero: document.getElementById('nf_lista').value,
+            nf_numero: document.getElementById('nfe').value,
             empresa_emitente: 'Jobren Transportes'
         };
 
-        const { error } = await _supabase.from('coletas_pro').insert([payload]);
-        if (!error) alert("✅ Dados salvos no Supabase!");
-        else alert("❌ Erro ao salvar: " + error.message);
+        const { error } = await _supabase.from('coletas_pro').insert([dados]);
+        if (!error) alert("✅ Salvo com sucesso!");
     }
 
     function gerarPDF() {
-        const element = document.getElementById('ordem-coleta');
-        const num = document.getElementById('num_coleta_txt').innerText;
+        const el = document.getElementById('ordem-documento');
+        const num = document.getElementById('num_id').innerText;
         
         const opt = {
             margin: 0,
@@ -226,8 +217,8 @@
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        html2pdf().set(opt).from(element).save().then(() => {
-            alert("PDF gerado! A página será reiniciada para uma nova coleta.");
+        html2pdf().set(opt).from(el).save().then(() => {
+            alert("PDF Gerado!");
             location.reload();
         });
     }
