@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren Transportes | Emissor</title>
+    <title>Jobren Transportes | Emissor Profissional</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -33,8 +33,8 @@
 <body>
 
 <div class="actions">
-    <button class="btn btn-save" onclick="salvarBanco()">💾 SALVAR NO BANCO</button>
-    <button class="btn btn-pdf" onclick="gerarPDF()">📄 GERAR PDF</button>
+    <button class="btn btn-save" onclick="processarEnvioCompleto()">💾 SALVAR E ENVIAR PDF</button>
+    <button class="btn btn-pdf" onclick="gerarPDF()">📄 APENAS BAIXAR PDF</button>
 </div>
 
 <div id="ordem-documento">
@@ -97,35 +97,78 @@
     const S_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE'.trim();
     let _supabase = null;
 
-    // Função para limpar os campos e resetar o ID e Datas
-    function limparFormulario() {
-        // Gera novo número de ID
+    window.onload = () => {
+        _supabase = supabase.createClient(S_URL, S_KEY);
+        resetForm();
+    };
+
+    function resetForm() {
         document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
-        
-        // Reseta datas para o momento atual
         const agora = new Date();
         document.getElementById('dt_ini').value = agora.toISOString().slice(0, 16);
         document.getElementById('dt_fim').value = agora.toISOString().slice(0, 16);
         document.getElementById('dt_ent').value = agora.toISOString().slice(0, 10);
-
-        // Limpa todos os inputs de texto e números
-        const inputs = document.querySelectorAll('input');
-        inputs.forEach(input => {
-            if (input.type !== 'datetime-local' && input.type !== 'date') {
-                if (input.id === 'vols') input.value = "1";
-                else if (input.id === 'peso' || input.id === 'val_nfs') input.value = "0.00";
-                else input.value = "";
-            }
-        });
-
-        // Limpa textarea
-        document.getElementById('obs_geral').value = "";
+        
+        // Limpa campos de texto
+        document.querySelectorAll('input[type="text"], textarea').forEach(el => el.value = "");
+        document.getElementById('vols').value = "1";
+        document.getElementById('peso').value = "0.00";
+        document.getElementById('val_nfs').value = "0.00";
     }
 
-    window.onload = () => {
-        _supabase = supabase.createClient(S_URL, S_KEY);
-        limparFormulario(); // Inicializa o formulário limpo
-    };
+    async function processarEnvioCompleto() {
+        const num = document.getElementById('num_id').innerText;
+        
+        // 1. Salva os dados na Tabela
+        const dados = {
+            numero_coleta: parseInt(num),
+            rem_cnpj: document.getElementById('rem_cnpj').value,
+            rem_nome: document.getElementById('rem_nome').value,
+            dest_cnpj: document.getElementById('dest_cnpj').value,
+            dest_nome: document.getElementById('dest_nome').value,
+            nf_numero: document.getElementById('nfe').value,
+            peso: parseFloat(document.getElementById('peso').value.replace(',', '.')) || 0,
+            volumes: parseInt(document.getElementById('vols').value) || 0,
+            observacao_geral: document.getElementById('obs_geral').value,
+            empresa_log: 'Jobren Transportes',
+            data_criacao: new Date().toISOString()
+        };
+
+        const { error: tableError } = await _supabase.from('coletas_pro').insert([dados]);
+
+        if (tableError) {
+            alert("Erro ao salvar dados: " + tableError.message);
+            return;
+        }
+
+        // 2. Gera o PDF e faz Upload para o Storage
+        const element = document.getElementById('ordem-documento');
+        const opt = { margin: 0, filename: `coleta_${num}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+
+        const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+
+        const { error: storageError } = await _supabase.storage
+            .from('documentos_coleta')
+            .upload(`pdf/coleta_${num}.pdf`, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+        if (storageError) {
+            alert("Dados salvos, mas erro ao subir PDF: " + storageError.message);
+        } else {
+            alert("✅ Tudo Salvo! Dados registrados e PDF enviado ao banco.");
+            resetForm(); // Limpa tudo após o sucesso
+        }
+    }
+
+    function gerarPDF() {
+        const el = document.getElementById('ordem-documento');
+        const num = document.getElementById('num_id').innerText;
+        html2pdf().from(el).save(`Jobren_Coleta_${num}.pdf`);
+        
+        // Pergunta se quer limpar após baixar
+        setTimeout(() => {
+            if(confirm("PDF baixado. Limpar formulário?")) resetForm();
+        }, 1500);
+    }
 
     async function fetchCompany(tipo) {
         const cnpj = document.getElementById(tipo + '_cnpj').value.replace(/\D/g, '');
@@ -138,54 +181,6 @@
                 document.getElementById(tipo + '_end').value = `${data.logradouro}, ${data.numero} - ${data.bairro}`;
             }
         } catch (e) {}
-    }
-
-    async function salvarBanco() {
-        if (!_supabase) _supabase = supabase.createClient(S_URL, S_KEY);
-        const numTxt = document.getElementById('num_id').innerText;
-        
-        const dados = {
-            numero_coleta: parseInt(numTxt),
-            rem_cnpj: document.getElementById('rem_cnpj').value,
-            rem_nome: document.getElementById('rem_nome').value,
-            dest_cnpj: document.getElementById('dest_cnpj').value,
-            dest_nome: document.getElementById('dest_nome').value,
-            nf_numero: document.getElementById('nfe').value,
-            peso: parseFloat(document.getElementById('peso').value.replace(',', '.')) || 0,
-            volumes: parseInt(document.getElementById('vols').value) || 0,
-            observacao_geral: document.getElementById('obs_geral').value,
-            empresa_log: 'Jobren Transportes',
-            data_criacao: new Date().toISOString()
-        };
-        
-        const { error } = await _supabase.from('coletas_pro').insert([dados]);
-        
-        if (error) {
-            alert("Erro ao salvar: " + error.message);
-        } else {
-            alert("✅ Sucesso! Ordem #" + numTxt + " salva no banco.");
-            limparFormulario(); // Limpa após salvar
-        }
-    }
-
-    function gerarPDF() {
-        const el = document.getElementById('ordem-documento');
-        const num = document.getElementById('num_id').innerText;
-        
-        html2pdf().set({
-            margin: 0,
-            filename: `Jobren_Coleta_${num}.pdf`,
-            html2canvas: { scale: 3 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).from(el).toPdf().get('pdf').then(function (pdf) {
-            pdf.save();
-            // Pequeno delay para garantir que o download iniciou antes de limpar
-            setTimeout(() => {
-                if(confirm("PDF gerado! Deseja limpar o formulário para uma nova coleta?")) {
-                    limparFormulario();
-                }
-            }, 1000);
-        });
     }
 </script>
 </body>
