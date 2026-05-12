@@ -9,7 +9,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        /* CSS Otimizado para Página Única A4 */
         * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
         
         body { 
@@ -22,7 +21,6 @@
             align-items: center;
         }
 
-        /* Estilos do Localizador */
         .search-container {
             width: 210mm;
             background: #1e293b;
@@ -48,7 +46,7 @@
             background: white; 
             padding: 10mm; 
             position: relative;
-            overflow: hidden; /* Impede criação de 2ª página */
+            overflow: hidden;
         }
 
         .header { 
@@ -105,7 +103,7 @@
 
 <div class="search-container">
     <div class="search-box">
-        <input type="text" id="input_busca" placeholder="Localizar por CNPJ ou Número da Coleta...">
+        <input type="text" id="input_busca" placeholder="Digite o CNPJ (apenas números) ou Nº da Coleta...">
         <button class="btn-search" onclick="buscarOrdens()">🔍 LOCALIZAR</button>
     </div>
     <table id="tabela-resultados">
@@ -220,20 +218,29 @@
         document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
     }
 
-    // NOVA FUNÇÃO DE BUSCA
     async function buscarOrdens() {
-        const termo = document.getElementById('input_busca').value;
-        if(!termo) return;
+        const termo = document.getElementById('input_busca').value.replace(/\D/g,'');
+        if(!termo) {
+            alert("Por favor, digite um CNPJ ou Número de Coleta.");
+            return;
+        }
 
+        // Tenta buscar por 'numero_coleta' ou tenta a coluna 'cnpj' (caso ela exista agora)
         const { data, error } = await _supabase
             .from('coletas_pro')
             .select('*')
-            .or(`cnpj.eq.${termo},numero_coleta.eq.${termo}`)
-            .order('data_criacao', { ascending: false });
+            .or(`numero_coleta.eq.${termo}, cnpj.eq.${termo}`) 
+            .order('numero_coleta', { ascending: false });
 
         const lista = document.getElementById('lista_busca');
         const tabela = document.getElementById('tabela-resultados');
         lista.innerHTML = "";
+
+        if(error) {
+            console.error("Erro na busca:", error);
+            alert("Erro ao acessar o banco. Verifique se a coluna 'cnpj' foi criada corretamente.");
+            return;
+        }
 
         if(data && data.length > 0) {
             tabela.style.display = "table";
@@ -292,7 +299,7 @@
 
             const { error } = await _supabase.from('coletas_pro').insert([{
                 numero_coleta: parseInt(num),
-                cnpj: document.getElementById('rem_cnpj').value,
+                cnpj: document.getElementById('rem_cnpj').value.replace(/\D/g,''),
                 razao_social: document.getElementById('rem_nome').value,
                 endereco: document.getElementById('rem_end').value,
                 dest_nome: document.getElementById('dest_nome').value,
@@ -325,3 +332,4 @@
     }
 </script>
 </body>
+</html>
