@@ -21,18 +21,18 @@
             font-family: 'Inter', 'Segoe UI', Arial, sans-serif; 
             background-color: #0f172a; 
             margin: 0; 
-            padding: 40px 20px; 
+            padding: 20px; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
         }
 
-        /* Estilo do Documento PDF */
+        /* Estilo do Documento PDF - Ajustado para Página Única */
         #ordem-documento { 
             width: 210mm; 
             min-height: 297mm; 
             background: white; 
-            padding: 15mm; 
+            padding: 10mm; 
             box-sizing: border-box; 
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
             border-radius: 4px;
@@ -43,22 +43,22 @@
             justify-content: space-between; 
             align-items: center;
             border-bottom: 5px solid var(--blue-deep); 
-            padding-bottom: 20px; 
-            margin-bottom: 25px; 
+            padding-bottom: 15px; 
+            margin-bottom: 20px; 
         }
 
         .brand h1 { 
             margin: 0; 
             color: var(--blue-deep); 
-            font-size: 32px; 
+            font-size: 28px; 
             font-weight: 900; 
             letter-spacing: -1px;
             text-transform: uppercase; 
         }
 
         .brand p { 
-            margin: 3px 0; 
-            font-size: 11px; 
+            margin: 2px 0; 
+            font-size: 10px; 
             color: #444; 
             font-weight: 600; 
             text-transform: uppercase;
@@ -67,78 +67,76 @@
         .id-box { 
             background: var(--black-soft); 
             color: white; 
-            padding: 15px 30px; 
+            padding: 12px 25px; 
             border-radius: 8px; 
             text-align: center; 
             border-right: 6px solid var(--blue-accent);
         }
 
-        .id-box span { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; }
-        .id-box h2 { margin: 0; font-size: 30px; font-weight: 800; color: #fff; }
+        .id-box span { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; }
+        .id-box h2 { margin: 0; font-size: 26px; font-weight: 800; color: #fff; }
 
         .bar { 
             background: var(--blue-deep); 
             color: white; 
-            padding: 10px 15px; 
-            font-size: 12px; 
+            padding: 8px 12px; 
+            font-size: 11px; 
             font-weight: 700; 
             text-transform: uppercase; 
-            margin-top: 15px;
+            margin-top: 12px;
             border-radius: 2px;
-            display: flex;
-            align-items: center;
         }
 
-        .grid { display: grid; grid-template-columns: repeat(6, 1fr); border: 1px solid #ccc; margin-bottom: 8px; background: #fff; }
-        .cell { padding: 8px; border-right: 1px solid #eee; border-bottom: 1px solid #eee; display: flex; flex-direction: column; }
+        .grid { display: grid; grid-template-columns: repeat(6, 1fr); border: 1px solid #ccc; margin-bottom: 5px; background: #fff; }
+        .cell { padding: 6px; border-right: 1px solid #eee; border-bottom: 1px solid #eee; display: flex; flex-direction: column; }
         .cell:last-child { border-right: none; }
         .span-6 { grid-column: span 6; } .span-4 { grid-column: span 4; } .span-3 { grid-column: span 3; } .span-2 { grid-column: span 2; }
 
         label { 
-            font-size: 9px; 
+            font-size: 8px; 
             font-weight: 800; 
             color: var(--blue-accent); 
             text-transform: uppercase; 
-            margin-bottom: 4px; 
+            margin-bottom: 2px; 
         }
 
         input, textarea { 
             border: none; 
             outline: none; 
-            font-size: 12px; 
+            font-size: 11px; 
             color: #000; 
             font-weight: 600;
             background: transparent; 
             width: 100%; 
         }
 
-        textarea { resize: none; font-weight: 400; line-height: 1.5; }
+        textarea { resize: none; font-weight: 400; line-height: 1.4; }
 
         /* Painel de Ações */
         .actions { 
             position: fixed; 
-            right: 30px; 
+            right: 20px; 
             top: 50%;
             transform: translateY(-50%);
             display: flex; 
             flex-direction: column; 
-            gap: 15px; 
+            gap: 10px; 
             z-index: 1000; 
         }
 
         .btn { 
-            padding: 18px 25px; 
+            padding: 15px 20px; 
             border: none; 
-            border-radius: 12px; 
+            border-radius: 10px; 
             color: white; 
             font-weight: 800; 
             cursor: pointer; 
             transition: all 0.3s;
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            gap: 8px;
+            font-size: 13px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.3);
         }
 
         .btn-save { background: var(--success); }
@@ -146,9 +144,15 @@
         .btn-pdf { background: var(--blue-accent); }
         .btn-pdf:hover { background: var(--blue-deep); transform: scale(1.05); }
         
-        .btn:disabled { background: #666; cursor: not-allowed; transform: none; }
+        .btn:disabled { background: #666; cursor: not-allowed; }
 
-        @media print { .actions { display: none; } #ordem-documento { box-shadow: none; padding: 0; } }
+        /* Prevenção de quebra de página */
+        @media print { 
+            .actions { display: none; } 
+            #ordem-documento { box-shadow: none; padding: 10mm; margin: 0; }
+            html, body { height: 100%; overflow: hidden; }
+        }
+        #ordem-documento * { page-break-inside: avoid; }
     </style>
 </head>
 <body>
@@ -203,22 +207,22 @@
     <div class="grid">
         <div class="cell span-6">
             <label>Notas de Transporte</label>
-            <textarea id="obs_geral" rows="6" placeholder="Informar aqui restrições de horário, contatos no local, tipo de material, etc..."></textarea>
+            <textarea id="obs_geral" rows="5" placeholder="Restrições, contatos, tipo de material, etc..."></textarea>
         </div>
     </div>
 
-    <div style="margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px;">
+    <div style="margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
         <div style="text-align: center;">
             <div style="border-top: 1.5px solid #000; margin-bottom: 5px;"></div>
-            <span style="font-size: 9px; font-weight: 700; text-transform: uppercase;">Assinatura Motorista / Responsável</span>
+            <span style="font-size: 8px; font-weight: 700; text-transform: uppercase;">Assinatura Motorista / Responsável</span>
         </div>
         <div style="text-align: center;">
             <div style="border-top: 1.5px solid #000; margin-bottom: 5px;"></div>
-            <span style="font-size: 9px; font-weight: 700; text-transform: uppercase;">Carimbo e Assinatura Recebimento</span>
+            <span style="font-size: 8px; font-weight: 700; text-transform: uppercase;">Carimbo e Assinatura Recebimento</span>
         </div>
     </div>
     
-    <div style="margin-top: 30px; text-align: center; font-size: 8px; color: #888; text-transform: uppercase; letter-spacing: 2px;">
+    <div style="margin-top: 20px; text-align: center; font-size: 8px; color: #888; text-transform: uppercase; letter-spacing: 2px;">
         Documento gerado eletronicamente via Sistema de Gestão Jobren Transportes
     </div>
 </div>
@@ -276,9 +280,9 @@
             const el = document.getElementById('ordem-documento');
             
             const pdfOpt = {
-                margin: 0,
+                margin: [0, 0, 0, 0],
                 filename: `Jobren_Coleta_${numTxt}.pdf`,
-                html2canvas: { scale: 2, useCORS: true },
+                html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
@@ -293,7 +297,6 @@
 
             const { data: urlData } = _supabase.storage.from('documentos_coleta').getPublicUrl(filePath);
 
-            // MAPEAMENTO ATUALIZADO PARA BATER COM AS COLUNAS DO SEU BANCO
             const { error: dbError } = await _supabase.from('coletas_pro').insert([{
                 numero_coleta: parseInt(numTxt),
                 cnpj: document.getElementById('rem_cnpj').value,
@@ -315,7 +318,7 @@
 
             await html2pdf().set(pdfOpt).from(el).save();
 
-            alert(`✅ SUCESSO!\nOrdem #${numTxt} salva no banco e PDF gerado.`);
+            alert(`✅ SUCESSO!\nOrdem #${numTxt} salva e PDF gerado.`);
             limparFormulario();
 
         } catch (err) {
@@ -331,9 +334,9 @@
         const el = document.getElementById('ordem-documento');
         const num = document.getElementById('num_id').innerText;
         html2pdf().set({
-            margin: 0,
+            margin: [0, 0, 0, 0],
             filename: `Jobren_Coleta_${num}.pdf`,
-            html2canvas: { scale: 3 },
+            html2canvas: { scale: 2, scrollY: 0 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         }).from(el).save();
     }
