@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren Transportes | Emissor de Coletas</title>
+    <title>Jobren Transportes | Sistema de Coleta</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -31,7 +31,6 @@
         label { font-size: 8px; font-weight: 800; color: var(--blue); text-transform: uppercase; margin-bottom: 2px; }
         input, textarea { border: none; outline: none; font-size: 11px; color: #000; font-family: inherit; background: transparent; width: 100%; }
         
-        /* Estilo para o input de data para mostrar o ícone do calendário */
         input[type="date"], input[type="datetime-local"] { cursor: pointer; }
 
         .actions { position: fixed; right: 20px; top: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
@@ -125,13 +124,18 @@
     const KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
     let _supabase = null;
 
-    window.onload = () => {
-        _supabase = supabase.createClient(URL, KEY);
+    // Inicialização robusta
+    function inicializarSistema() {
+        try {
+            _supabase = supabase.createClient(URL, KEY);
+        } catch (e) {
+            console.error("Erro Supabase:", e);
+        }
         
-        // Ordem de coleta aleatória
+        // Gera número aleatório
         document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
         
-        // Preencher datas atuais
+        // Configura datas iniciais
         const agora = new Date();
         const dataLocal = agora.toISOString().slice(0, 16);
         const dataApenas = agora.toISOString().slice(0, 10);
@@ -139,7 +143,9 @@
         document.getElementById('dt_ini').value = dataLocal;
         document.getElementById('dt_fim').value = dataLocal;
         document.getElementById('dt_ent').value = dataApenas;
-    };
+    }
+
+    window.onload = inicializarSistema;
 
     async function fetchCompany(tipo) {
         const cnpj = document.getElementById(tipo + '_cnpj').value.replace(/\D/g, '');
@@ -153,10 +159,14 @@
                 document.getElementById(tipo + '_bairro').value = data.bairro;
                 document.getElementById(tipo + '_cep').value = data.cep;
             }
-        } catch (e) { console.error("Erro na busca automática do CNPJ"); }
+        } catch (e) { console.error("Erro CNPJ"); }
     }
 
     async function salvarBanco() {
+        if (!_supabase) {
+            _supabase = supabase.createClient(URL, KEY);
+        }
+
         const dados = {
             numero_coleta: document.getElementById('num_id').innerText,
             rem_nome: document.getElementById('rem_nome').value,
@@ -168,30 +178,23 @@
         
         try {
             const { error } = await _supabase.from('coletas_pro').insert([dados]);
-            if (!error) alert("✅ Ordem de coleta salva com sucesso!");
-            else alert("❌ Erro ao salvar: " + error.message);
+            if (!error) alert("✅ Salvo com sucesso!");
+            else alert("❌ Erro: " + error.message);
         } catch (err) {
-            alert("❌ Falha de conexão com o banco.");
+            alert("❌ Erro de conexão.");
         }
     }
 
     function gerarPDF() {
         const el = document.getElementById('ordem-documento');
         const num = document.getElementById('num_id').innerText;
-        
         const opt = {
             margin: 0,
             filename: `Jobren_Coleta_${num}.pdf`,
-            image: { type: 'jpeg', quality: 1 },
-            html2canvas: { scale: 3, useCORS: true },
+            html2canvas: { scale: 3 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
-
-        html2pdf().set(opt).from(el).save().then(() => {
-            alert("PDF Gerado com sucesso!");
-            // Opcional: recarregar para gerar novo número aleatório
-            // location.reload(); 
-        });
+        html2pdf().set(opt).from(el).save().then(() => { alert("PDF Gerado!"); });
     }
 </script>
 </body>
