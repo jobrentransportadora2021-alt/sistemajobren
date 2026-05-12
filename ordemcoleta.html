@@ -23,7 +23,7 @@
 
         #ordem-documento { 
             width: 210mm; 
-            height: 295mm; /* Ligeiramente menor que A4 para margem de segurança */
+            height: 295mm; 
             background: white; 
             padding: 8mm; 
             position: relative;
@@ -61,7 +61,6 @@
             margin: 8px 0 2px 0;
         }
 
-        /* Grid System via Table para precisão de PDF */
         table { width: 100%; border-collapse: collapse; margin-bottom: 2px; }
         td { border: 1px solid #ccc; padding: 4px 8px; vertical-align: top; }
         
@@ -71,7 +70,6 @@
             font-weight: bold; background: transparent; padding: 0;
         }
 
-        /* Botões laterais */
         .actions { position: fixed; left: 20px; top: 20px; display: flex; flex-direction: column; gap: 10px; }
         .btn { padding: 12px 20px; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; }
         .btn-save { background: #22c55e; }
@@ -83,7 +81,7 @@
 <body>
 
 <div class="actions">
-    <button class="btn btn-save" onclick="salvarBancoCompleto()">💾 SALVAR E GERAR</button>
+    <button class="btn btn-save" id="btn_salvar" onclick="salvarBancoCompleto()">💾 SALVAR E GERAR</button>
     <button class="btn btn-pdf" onclick="gerarPDF()">📄 SÓ GERAR PDF</button>
 </div>
 
@@ -165,18 +163,34 @@
 </div>
 
 <script>
-    // Configurações do Supabase (Substitua se necessário)
     const S_URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co';
     const S_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
     let _supabase = supabase.createClient(S_URL, S_KEY);
 
     window.onload = () => {
+        limparFormulario();
+    };
+
+    function limparFormulario() {
+        // Gera novo ID
         document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
+        
+        // Datas atuais
         const agora = new Date().toISOString();
         document.getElementById('dt_ini').value = agora.slice(0, 16);
         document.getElementById('dt_fim').value = agora.slice(0, 16);
         document.getElementById('dt_ent').value = agora.slice(0, 10);
-    };
+
+        // Limpa campos de texto
+        const inputs = ['rem_cnpj', 'rem_nome', 'rem_end', 'dest_cnpj', 'dest_nome', 'dest_end', 'peso', 'val_nfs', 'nfe'];
+        inputs.forEach(id => document.getElementById(id).value = '');
+        
+        // Valores padrão
+        document.getElementById('vols').value = '1';
+        document.getElementById('peso').value = '0.00';
+        document.getElementById('val_nfs').value = '0.00';
+        document.getElementById('obs_geral').value = '';
+    }
 
     async function fetchCompany(t) {
         const c = document.getElementById(t+'_cnpj').value.replace(/\D/g,'');
@@ -191,10 +205,13 @@
     }
 
     async function salvarBancoCompleto() {
+        const btn = document.getElementById('btn_salvar');
         const num = document.getElementById('num_id').innerText;
         const el = document.getElementById('ordem-documento');
         
-        // Opções para manter em UMA PÁGINA
+        btn.disabled = true;
+        btn.innerText = "⏳ SALVANDO...";
+
         const opt = {
             margin: 0,
             filename: `Coleta_${num}.pdf`,
@@ -211,7 +228,7 @@
             await _supabase.storage.from('documentos_coleta').upload(path, pdfBlob);
             const { data: { publicUrl } } = _supabase.storage.from('documentos_coleta').getPublicUrl(path);
 
-            // 2. Salvar no Banco (Use os nomes das suas colunas aqui)
+            // 2. Salvar no Banco
             await _supabase.from('coletas_pro').insert([{
                 numero_coleta: num,
                 razao_social: document.getElementById('rem_nome').value,
@@ -219,10 +236,18 @@
                 url_documento: publicUrl
             }]);
 
-            // 3. Download para o usuário
-            html2pdf().set(opt).from(el).save();
-            alert("Sucesso! Página única gerada e salva.");
-        } catch (e) { alert("Erro: " + e.message); }
+            // 3. Download PDF
+            await html2pdf().set(opt).from(el).save();
+
+            // 4. Limpar Tela
+            limparFormulario();
+            
+        } catch (e) { 
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "💾 SALVAR E GERAR";
+        }
     }
 
     function gerarPDF() {
