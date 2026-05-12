@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren Transportes | Sistema de Coleta</title>
+    <title>Jobren Transportes | Emissor</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -23,7 +23,7 @@
         .cell:last-child { border-right: none; }
         .span-6 { grid-column: span 6; } .span-4 { grid-column: span 4; } .span-2 { grid-column: span 2; }
         label { font-size: 8px; font-weight: 800; color: var(--blue); text-transform: uppercase; margin-bottom: 2px; }
-        input, textarea { border: none; outline: none; font-size: 11px; color: #000; font-family: inherit; background: transparent; width: 100%; resize: none; }
+        input, textarea { border: none; outline: none; font-size: 11px; color: #000; font-family: inherit; background: transparent; width: 100%; }
         .actions { position: fixed; right: 20px; top: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
         .btn { padding: 15px 25px; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         .btn-save { background: #27ae60; } .btn-pdf { background: var(--blue); }
@@ -51,8 +51,8 @@
     </div>
 
     <div class="grid">
-        <div class="cell span-2"><label>Data/Hora Inicial</label><input type="datetime-local" id="dt_ini"></div>
-        <div class="cell span-2"><label>Data/Hora Final</label><input type="datetime-local" id="dt_fim"></div>
+        <div class="cell span-2"><label>Data Inicial</label><input type="datetime-local" id="dt_ini"></div>
+        <div class="cell span-2"><label>Data Final</label><input type="datetime-local" id="dt_fim"></div>
         <div class="cell span-2"><label>Previsão Entrega</label><input type="date" id="dt_ent"></div>
     </div>
 
@@ -78,17 +78,17 @@
         <div class="cell span-3"><label>Números NF-e</label><input type="text" id="nfe"></div>
     </div>
 
-    <div class="bar">4. Observações e Informações Adicionais</div>
+    <div class="bar">4. Observações Adicionais</div>
     <div class="grid">
         <div class="cell span-6">
-            <label>Instruções Adicionais</label>
-            <textarea id="obs_geral" rows="5" placeholder="Digite aqui mais informações sobre a coleta..."></textarea>
+            <label>Instruções Extras</label>
+            <textarea id="obs_geral" rows="5" placeholder="Digite aqui informações complementares..."></textarea>
         </div>
     </div>
 
-    <div style="margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+    <div style="margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
         <div style="border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 10px;">ASSINATURA MOTORISTA</div>
-        <div style="border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 10px;">ASSINATURA / CARIMBO RECEBIMENTO</div>
+        <div style="border-top: 1px solid #000; text-align: center; padding-top: 5px; font-size: 10px;">ASSINATURA RECEBIMENTO</div>
     </div>
 </div>
 
@@ -99,7 +99,9 @@
 
     window.onload = () => {
         _supabase = supabase.createClient(S_URL, S_KEY);
+        // Gera número aleatório a cada nova criação (load da página)
         document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
+        
         const agora = new Date();
         document.getElementById('dt_ini').value = agora.toISOString().slice(0, 16);
         document.getElementById('dt_fim').value = agora.toISOString().slice(0, 16);
@@ -122,27 +124,29 @@
     async function salvarBanco() {
         const numTxt = document.getElementById('num_id').innerText;
         const dados = {
-            numero_coleta: parseInt(numTxt), // Converte para número para evitar Erro 400
+            numero_coleta: parseInt(numTxt),
             rem_nome: document.getElementById('rem_nome').value,
             dest_nome: document.getElementById('dest_nome').value,
             nf_numero: document.getElementById('nfe').value,
             data_criacao: new Date().toISOString(),
-            empresa_emitente: 'Jobren Transportes'
+            empresa_emitente: 'Jobren Transportes',
+            observacao_geral: document.getElementById('obs_geral').value
         };
         
         const { error } = await _supabase.from('coletas_pro').insert([dados]);
         if (error) {
-            alert("Erro: " + error.message + "\nVerifique se a tabela permite inserção pública.");
+            alert("Erro ao salvar: " + error.message);
         } else {
-            alert("✅ Salvo com sucesso! Ordem #" + numTxt);
+            alert("✅ Sucesso! Ordem #" + numTxt + " salva no banco.");
         }
     }
 
     function gerarPDF() {
         const el = document.getElementById('ordem-documento');
+        const num = document.getElementById('num_id').innerText;
         html2pdf().set({
             margin: 0,
-            filename: `Jobren_Coleta_${document.getElementById('num_id').innerText}.pdf`,
+            filename: `Jobren_Coleta_${num}.pdf`,
             html2canvas: { scale: 3 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         }).from(el).save();
