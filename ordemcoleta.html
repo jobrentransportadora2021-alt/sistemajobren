@@ -97,14 +97,34 @@
     const S_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE'.trim();
     let _supabase = null;
 
-    window.onload = () => {
-        _supabase = supabase.createClient(S_URL, S_KEY);
+    // Função para limpar os campos e resetar o ID e Datas
+    function limparFormulario() {
+        // Gera novo número de ID
         document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
         
+        // Reseta datas para o momento atual
         const agora = new Date();
         document.getElementById('dt_ini').value = agora.toISOString().slice(0, 16);
         document.getElementById('dt_fim').value = agora.toISOString().slice(0, 16);
         document.getElementById('dt_ent').value = agora.toISOString().slice(0, 10);
+
+        // Limpa todos os inputs de texto e números
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            if (input.type !== 'datetime-local' && input.type !== 'date') {
+                if (input.id === 'vols') input.value = "1";
+                else if (input.id === 'peso' || input.id === 'val_nfs') input.value = "0.00";
+                else input.value = "";
+            }
+        });
+
+        // Limpa textarea
+        document.getElementById('obs_geral').value = "";
+    }
+
+    window.onload = () => {
+        _supabase = supabase.createClient(S_URL, S_KEY);
+        limparFormulario(); // Inicializa o formulário limpo
     };
 
     async function fetchCompany(tipo) {
@@ -124,7 +144,6 @@
         if (!_supabase) _supabase = supabase.createClient(S_URL, S_KEY);
         const numTxt = document.getElementById('num_id').innerText;
         
-        // Objeto de dados usando NOMES LIMPOS (sem espaços ou sublinhados iniciais)
         const dados = {
             numero_coleta: parseInt(numTxt),
             rem_cnpj: document.getElementById('rem_cnpj').value,
@@ -142,22 +161,31 @@
         const { error } = await _supabase.from('coletas_pro').insert([dados]);
         
         if (error) {
-            console.error(error);
             alert("Erro ao salvar: " + error.message);
         } else {
-            alert("✅ Sucesso! Ordem #" + numTxt + " salva no banco de dados.");
+            alert("✅ Sucesso! Ordem #" + numTxt + " salva no banco.");
+            limparFormulario(); // Limpa após salvar
         }
     }
 
     function gerarPDF() {
         const el = document.getElementById('ordem-documento');
         const num = document.getElementById('num_id').innerText;
+        
         html2pdf().set({
             margin: 0,
             filename: `Jobren_Coleta_${num}.pdf`,
             html2canvas: { scale: 3 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).from(el).save();
+        }).from(el).toPdf().get('pdf').then(function (pdf) {
+            pdf.save();
+            // Pequeno delay para garantir que o download iniciou antes de limpar
+            setTimeout(() => {
+                if(confirm("PDF gerado! Deseja limpar o formulário para uma nova coleta?")) {
+                    limparFormulario();
+                }
+            }, 1000);
+        });
     }
 </script>
 </body>
