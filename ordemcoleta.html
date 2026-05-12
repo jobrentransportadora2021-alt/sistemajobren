@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jobren Transportes | Ordem de Coleta</title>
+    <link rel="icon" href="data:,">
     
     <!-- SDKs Necessários -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -12,7 +13,7 @@
     <style>
         :root { --primary: #003366; --accent: #ffcc00; --bg: #e9ecef; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; padding: 20px; }
-        #ordem-documento { max-width: 850px; margin: auto; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow: hidden; }
+        #ordem-documento { max-width: 850px; margin: auto; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow: hidden; padding-bottom: 20px; }
         .header { background-color: var(--primary); color: white; padding: 25px; text-align: center; border-bottom: 5px solid var(--accent); }
         .form-body { padding: 30px; }
         .section-title { font-size: 13px; font-weight: bold; color: var(--primary); text-transform: uppercase; border-left: 4px solid var(--accent); padding-left: 10px; margin: 25px 0 15px 0; }
@@ -22,10 +23,9 @@
         input, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         button { width: 100%; padding: 18px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
         .btn-download { background-color: #007bff; margin-top: 20px; }
-        .loading { color: #007bff; font-size: 11px; display: none; }
+        .loading { color: #007bff; font-size: 11px; display: none; font-weight: normal; }
         
-        /* Ajuste para o PDF não sair cortado */
-        @media print { .no-print { display: none; } }
+        @media print { .no-print { display: none !important; } }
     </style>
 </head>
 <body>
@@ -41,8 +41,8 @@
         <div class="grid">
             <div class="full">
                 <label>CNPJ</label>
-                <input type="text" id="rem_cnpj" onblur="buscarEmpresa('rem')">
-                <span id="load_rem" class="loading">Buscando...</span>
+                <input type="text" id="rem_cnpj" placeholder="00000000000000" onblur="buscarEmpresa('rem')">
+                <span id="load_rem" class="loading">Buscando dados...</span>
             </div>
             <div class="full"><label>Razão Social</label><input type="text" id="rem_nome" readonly></div>
             <div class="full"><label>Endereço</label><input type="text" id="rem_end" readonly></div>
@@ -52,8 +52,8 @@
         <div class="grid">
             <div class="full">
                 <label>CNPJ</label>
-                <input type="text" id="dest_cnpj" onblur="buscarEmpresa('dest')">
-                <span id="load_dest" class="loading">Buscando...</span>
+                <input type="text" id="dest_cnpj" placeholder="00000000000000" onblur="buscarEmpresa('dest')">
+                <span id="load_dest" class="loading">Buscando dados...</span>
             </div>
             <div class="full"><label>Razão Social</label><input type="text" id="dest_nome" readonly></div>
             <div class="full"><label>Endereço</label><input type="text" id="dest_end" readonly></div>
@@ -76,32 +76,48 @@
 </div>
 
 <script>
-    // Inicialização segura
     var _supabase = null;
     
+    // Suas chaves configuradas corretamente
+    var SUPABASE_URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co';
+    var SUPABASE_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
+
     window.onload = function() {
-        var SUPABASE_URL = 'SUA_URL_AQUI';
-        var SUPABASE_KEY = 'SUA_CHAVE_AQUI';
-        _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        if (typeof supabase !== 'undefined') {
+            _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log("Supabase inicializado com sucesso.");
+        } else {
+            console.error("Erro: SDK do Supabase não foi carregado.");
+        }
     };
 
     async function buscarEmpresa(tipo) {
         var cnpj = document.getElementById(tipo + '_cnpj').value.replace(/\D/g, '');
         if (cnpj.length !== 14) return;
         
-        document.getElementById('load_' + tipo).style.display = 'block';
+        document.getElementById('load_' + tipo).style.display = 'inline';
         try {
             var res = await fetch('https://brasilapi.com.br/api/cnpj/v1/' + cnpj);
             var d = await res.json();
             if (d.razao_social) {
                 document.getElementById(tipo + '_nome').value = d.razao_social;
                 document.getElementById(tipo + '_end').value = d.logradouro + ', ' + d.numero + ' - ' + d.municipio + '/' + d.uf;
+            } else {
+                alert("CNPJ não encontrado.");
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error(e);
+            alert("Erro ao consultar CNPJ.");
+        }
         document.getElementById('load_' + tipo).style.display = 'none';
     }
 
     async function enviarParaSupabase() {
+        if (!_supabase) {
+            alert("Erro: Sistema de banco de dados não inicializado.");
+            return;
+        }
+
         var dados = {
             rem_cnpj: document.getElementById('rem_cnpj').value,
             rem_nome: document.getElementById('rem_nome').value,
@@ -115,31 +131,38 @@
             data_criacao: new Date().toISOString()
         };
 
+        if (!dados.rem_cnpj || !dados.nf_numero) {
+            alert("Por favor, preencha o CNPJ do remetente e o número da NF.");
+            return;
+        }
+
         try {
             var { error } = await _supabase.from('coletas_pro').insert([dados]);
             if (error) throw error;
-            alert("Sucesso! Dados salvos.");
-        } catch (e) { alert("Erro ao salvar: " + e.message); }
+            alert("Ordem salva com sucesso no banco de dados!");
+        } catch (e) { 
+            console.error(e);
+            alert("Erro ao salvar: " + e.message); 
+        }
     }
 
     function baixarPDF() {
         var elemento = document.getElementById('ordem-documento');
         var nf = document.getElementById('nf_numero').value || "S-NF";
         
+        var botoes = document.querySelector('.no-print');
+        botoes.style.visibility = 'hidden'; // Esconde os botões sem mudar o layout
+        
         var opcoes = {
             margin: 10,
-            filename: 'Ordem_Coleta_Jobren_NF_' + nf + '.pdf',
+            filename: 'Jobren_Ordem_NF_' + nf + '.pdf',
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
-        // Esconde os botões antes de gerar o PDF
-        document.querySelector('.no-print').style.display = 'none';
-        
         html2pdf().set(opcoes).from(elemento).save().then(() => {
-            // Mostra os botões de volta após o download
-            document.querySelector('.no-print').style.display = 'block';
+            botoes.style.visibility = 'visible'; // Mostra os botões de volta
         });
     }
 </script>
