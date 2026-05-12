@@ -1,257 +1,327 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobren Transportes | Emissor Pro</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobren Transportes | Emissor Pro</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <style>
-        /* CSS Otimizado para Página Única A4 */
-        * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
-        
-        body { 
-            font-family: Arial, sans-serif; 
-            background-color: #0f172a; 
-            margin: 0; 
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
+    <style>
+        /* CSS Otimizado para Página Única A4 */
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
+        
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #0f172a; 
+            margin: 0; 
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-        #ordem-documento { 
-            width: 210mm; 
-            height: 297mm; 
-            background: white; 
-            padding: 10mm; 
-            position: relative;
-            overflow: hidden; /* Impede criação de 2ª página */
-        }
+        /* Estilos do Localizador */
+        .search-container {
+            width: 210mm;
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .search-box { display: flex; gap: 10px; }
+        .search-box input { flex: 1; padding: 10px; border-radius: 4px; border: none; outline: none; font-weight: bold; }
+        .btn-search { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
+        #tabela-resultados {
+            width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; color: #000; border-radius: 4px; overflow: hidden; display: none;
+        }
+        #tabela-resultados th, #tabela-resultados td { padding: 8px; border: 1px solid #ccc; font-size: 12px; text-align: left; }
+        #tabela-resultados th { background: #eee; text-transform: uppercase; }
+        .btn-link { background: #22c55e; color: white; padding: 4px 8px; text-decoration: none; border-radius: 3px; font-size: 10px; font-weight: bold; }
 
-        .header { 
-            display: flex; 
-            justify-content: space-between; 
-            border-bottom: 4px solid #002347; 
-            padding-bottom: 10px; 
-            margin-bottom: 10px; 
-        }
+        #ordem-documento { 
+            width: 210mm; 
+            height: 297mm; 
+            background: white; 
+            padding: 10mm; 
+            position: relative;
+            overflow: hidden; /* Impede criação de 2ª página */
+        }
 
-        .brand h1 { margin: 0; color: #002347; font-size: 26px; font-weight: 900; }
-        .brand p { margin: 1px 0; font-size: 10px; color: #333; font-weight: bold; }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            border-bottom: 4px solid #002347; 
+            padding-bottom: 10px; 
+            margin-bottom: 10px; 
+        }
 
-        .id-box { 
-            background: #1a1a1a; 
-            color: white; 
-            padding: 10px 25px; 
-            text-align: center; 
-            border-right: 6px solid #003366;
-            border-radius: 4px;
-        }
-        .id-box span { font-size: 9px; display: block; color: #aaa; text-transform: uppercase; }
-        .id-box h2 { margin: 0; font-size: 24px; }
+        .brand h1 { margin: 0; color: #002347; font-size: 26px; font-weight: 900; }
+        .brand p { margin: 1px 0; font-size: 10px; color: #333; font-weight: bold; }
 
-        .bar { 
-            background: #002347; 
-            color: white; 
-            padding: 6px 12px; 
-            font-size: 11px; 
-            font-weight: bold; 
-            text-transform: uppercase; 
-            margin: 10px 0 3px 0;
-        }
+        .id-box { 
+            background: #1a1a1a; 
+            color: white; 
+            padding: 10px 25px; 
+            text-align: center; 
+            border-right: 6px solid #003366;
+            border-radius: 4px;
+        }
+        .id-box span { font-size: 9px; display: block; color: #aaa; text-transform: uppercase; }
+        .id-box h2 { margin: 0; font-size: 24px; }
 
-        table { width: 100%; border-collapse: collapse; margin-bottom: 2px; table-layout: fixed; }
-        td { border: 1px solid #ccc; padding: 5px 8px; vertical-align: top; overflow: hidden; }
-        
-        label { display: block; font-size: 8px; font-weight: 800; color: #003366; text-transform: uppercase; margin-bottom: 2px; }
-        input, textarea { 
-            width: 100%; border: none; outline: none; font-size: 12px; 
-            font-weight: bold; background: transparent; padding: 0; color: #000;
-        }
+        .bar { 
+            background: #002347; 
+            color: white; 
+            padding: 6px 12px; 
+            font-size: 11px; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            margin: 10px 0 3px 0;
+        }
 
-        .actions { position: fixed; left: 30px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; }
-        .btn { padding: 15px 25px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: 0.2s; }
-        .btn-save { background: #22c55e; }
-        .btn-pdf { background: #3b82f6; }
-        .btn:hover { transform: scale(1.05); }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 2px; table-layout: fixed; }
+        td { border: 1px solid #ccc; padding: 5px 8px; vertical-align: top; overflow: hidden; }
+        
+        label { display: block; font-size: 8px; font-weight: 800; color: #003366; text-transform: uppercase; margin-bottom: 2px; }
+        input, textarea { 
+            width: 100%; border: none; outline: none; font-size: 12px; 
+            font-weight: bold; background: transparent; padding: 0; color: #000;
+        }
 
-        @media print { .actions { display: none; } #ordem-documento { padding: 0; } }
-    </style>
+        .actions { position: fixed; left: 30px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 15px; }
+        .btn { padding: 15px 25px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: 0.2s; }
+        .btn-save { background: #22c55e; }
+        .btn-pdf { background: #3b82f6; }
+        .btn:hover { transform: scale(1.05); }
+
+        @media print { .actions, .search-container { display: none; } #ordem-documento { padding: 0; } }
+    </style>
 </head>
 <body>
 
+<div class="search-container">
+    <div class="search-box">
+        <input type="text" id="input_busca" placeholder="Localizar por CNPJ ou Número da Coleta...">
+        <button class="btn-search" onclick="buscarOrdens()">🔍 LOCALIZAR</button>
+    </div>
+    <table id="tabela-resultados">
+        <thead>
+            <tr>
+                <th>Nº Coleta</th>
+                <th>Remetente</th>
+                <th>Destinatário</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="lista_busca"></tbody>
+    </table>
+</div>
+
 <div class="actions">
-    <button class="btn btn-save" onclick="salvarBancoCompleto()">💾 SALVAR NO BANCO</button>
-    <button class="btn btn-pdf" onclick="gerarPDF()">📄 APENAS GERAR PDF</button>
+    <button class="btn btn-save" onclick="salvarBancoCompleto()">💾 SALVAR NO BANCO</button>
+    <button class="btn btn-pdf" onclick="gerarPDF()">📄 APENAS GERAR PDF</button>
 </div>
 
 <div id="ordem-documento">
-    <div class="header">
-        <div class="brand">
-            <h1>JOBREN TRANSPORTES</h1>
-            <p>RUA DR VIDAL REIS, 515 - PQ NOVO MUNDO - SÃO PAULO/SP</p>
-            <p>CNPJ: 53.566.595/0001-03 | CONTATO: (11) 94440-5380</p>
-        </div>
-        <div class="id-box">
-            <span>ORDEM DE COLETA</span>
-            <h2 id="num_id">00000</h2>
-        </div>
-    </div>
+    <div class="header">
+        <div class="brand">
+            <h1>JOBREN TRANSPORTES</h1>
+            <p>RUA DR VIDAL REIS, 515 - PQ NOVO MUNDO - SÃO PAULO/SP</p>
+            <p>CNPJ: 53.566.595/0001-03 | CONTATO: (11) 94440-5380</p>
+        </div>
+        <div class="id-box">
+            <span>ORDEM DE COLETA</span>
+            <h2 id="num_id">00000</h2>
+        </div>
+    </div>
 
-    <table>
-        <tr>
-            <td><label>Data/Hora Inicial</label><input type="datetime-local" id="dt_ini"></td>
-            <td><label>Data/Hora Final</label><input type="datetime-local" id="dt_fim"></td>
-            <td><label>Previsão Entrega</label><input type="date" id="dt_ent"></td>
-        </tr>
-    </table>
+    <table>
+        <tr>
+            <td><label>Data/Hora Inicial</label><input type="datetime-local" id="dt_ini"></td>
+            <td><label>Data/Hora Final</label><input type="datetime-local" id="dt_fim"></td>
+            <td><label>Previsão Entrega</label><input type="date" id="dt_ent"></td>
+        </tr>
+    </table>
 
-    <div class="bar">01. Identificação do Remetente</div>
-    <table>
-        <tr>
-            <td width="35%"><label>CNPJ / CPF</label><input type="text" id="rem_cnpj" onblur="fetchCompany('rem')"></td>
-            <td width="65%"><label>Razão Social / Nome</label><input type="text" id="rem_nome"></td>
-        </tr>
-        <tr>
-            <td colspan="2"><label>Endereço de Coleta</label><input type="text" id="rem_end"></td>
-        </tr>
-    </table>
+    <div class="bar">01. Identificação do Remetente</div>
+    <table>
+        <tr>
+            <td width="35%"><label>CNPJ / CPF</label><input type="text" id="rem_cnpj" onblur="fetchCompany('rem')"></td>
+            <td width="65%"><label>Razão Social / Nome</label><input type="text" id="rem_nome"></td>
+        </tr>
+        <tr>
+            <td colspan="2"><label>Endereço de Coleta</label><input type="text" id="rem_end"></td>
+        </tr>
+    </table>
 
-    <div class="bar">02. Identificação do Destinatário</div>
-    <table>
-        <tr>
-            <td width="35%"><label>CNPJ / CPF</label><input type="text" id="dest_cnpj" onblur="fetchCompany('dest')"></td>
-            <td width="65%"><label>Razão Social / Nome</label><input type="text" id="dest_nome"></td>
-        </tr>
-        <tr>
-            <td colspan="2"><label>Endereço de Entrega</label><input type="text" id="dest_end"></td>
-        </tr>
-    </table>
+    <div class="bar">02. Identificação do Destinatário</div>
+    <table>
+        <tr>
+            <td width="35%"><label>CNPJ / CPF</label><input type="text" id="dest_cnpj" onblur="fetchCompany('dest')"></td>
+            <td width="65%"><label>Razão Social / Nome</label><input type="text" id="dest_nome"></td>
+        </tr>
+        <tr>
+            <td colspan="2"><label>Endereço de Entrega</label><input type="text" id="dest_end"></td>
+        </tr>
+    </table>
 
-    <div class="bar">03. Detalhes da Carga & Logística</div>
-    <table>
-        <tr>
-            <td width="15%"><label>Volumes</label><input type="number" id="vols" value="1"></td>
-            <td width="20%"><label>Peso (KG)</label><input type="text" id="peso" value="0.00"></td>
-            <td width="20%"><label>Valor NFs</label><input type="text" id="val_nfs" value="0.00"></td>
-            <td width="45%"><label>Números das NF-e</label><input type="text" id="nfe"></td>
-        </tr>
-    </table>
+    <div class="bar">03. Detalhes da Carga & Logística</div>
+    <table>
+        <tr>
+            <td width="15%"><label>Volumes</label><input type="number" id="vols" value="1"></td>
+            <td width="20%"><label>Peso (KG)</label><input type="text" id="peso" value="0.00"></td>
+            <td width="20%"><label>Valor NFs</label><input type="text" id="val_nfs" value="0.00"></td>
+            <td width="45%"><label>Números das NF-e</label><input type="text" id="nfe"></td>
+        </tr>
+    </table>
 
-    <div class="bar">04. Observações</div>
-    <table>
-        <tr>
-            <td>
-                <label>Notas de Transporte</label>
-                <textarea id="obs_geral" rows="6" placeholder="Restrições de horário, contatos, etc..."></textarea>
-            </td>
-        </tr>
-    </table>
+    <div class="bar">04. Observações</div>
+    <table>
+        <tr>
+            <td>
+                <label>Notas de Transporte</label>
+                <textarea id="obs_geral" rows="6" placeholder="Restrições de horário, contatos, etc..."></textarea>
+            </td>
+        </tr>
+    </table>
 
-    <div style="margin-top: 60px; display: flex; justify-content: space-around;">
-        <div style="width: 40%; text-align: center; border-top: 1.5px solid #000; padding-top: 5px;">
-            <span style="font-size: 9px; font-weight: bold; text-transform: uppercase;">Assinatura Motorista</span>
-        </div>
-        <div style="width: 40%; text-align: center; border-top: 1.5px solid #000; padding-top: 5px;">
-            <span style="font-size: 9px; font-weight: bold; text-transform: uppercase;">Carimbo e Recebimento</span>
-        </div>
-    </div>
+    <div style="margin-top: 60px; display: flex; justify-content: space-around;">
+        <div style="width: 40%; text-align: center; border-top: 1.5px solid #000; padding-top: 5px;">
+            <span style="font-size: 9px; font-weight: bold; text-transform: uppercase;">Assinatura Motorista</span>
+        </div>
+        <div style="width: 40%; text-align: center; border-top: 1.5px solid #000; padding-top: 5px;">
+            <span style="font-size: 9px; font-weight: bold; text-transform: uppercase;">Carimbo e Recebimento</span>
+        </div>
+    </div>
 
-    <div style="position: absolute; bottom: 10mm; width: 100%; text-align: center; font-size: 9px; color: #999; left: 0;">
-        DOCUMENTO GERADO ELETRONICAMENTE - SISTEMA JOBREN TRANSPORTES
-    </div>
+    <div style="position: absolute; bottom: 10mm; width: 100%; text-align: center; font-size: 9px; color: #999; left: 0;">
+        DOCUMENTO GERADO ELETRONICAMENTE - SISTEMA JOBREN TRANSPORTES
+    </div>
 </div>
 
 <script>
-    const S_URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co';
-    const S_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
-    const _supabase = supabase.createClient(S_URL, S_KEY);
+    const S_URL = 'https://mcspwmajxfjzqfoxzvqu.supabase.co';
+    const S_KEY = 'sb_publishable_QJG8VV2XRNfghNiylDQWcg_zUS8kQvE';
+    const _supabase = supabase.createClient(S_URL, S_KEY);
 
-    window.onload = () => {
-        document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
-        const agora = new Date().toISOString();
-        document.getElementById('dt_ini').value = agora.slice(0, 16);
-        document.getElementById('dt_fim').value = agora.slice(0, 16);
-        document.getElementById('dt_ent').value = agora.slice(0, 10);
-    };
+    window.onload = () => {
+        gerarID();
+        const agora = new Date().toISOString();
+        document.getElementById('dt_ini').value = agora.slice(0, 16);
+        document.getElementById('dt_fim').value = agora.slice(0, 16);
+        document.getElementById('dt_ent').value = agora.slice(0, 10);
+    };
 
-    async function fetchCompany(t) {
-        const c = document.getElementById(t+'_cnpj').value.replace(/\D/g,'');
-        if(c.length >= 11) {
-            try {
-                const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${c}`);
-                const d = await r.json();
-                if(d.razao_social) {
-                    document.getElementById(t+'_nome').value = d.razao_social;
-                    document.getElementById(t+'_end').value = `${d.logradouro}, ${d.numero} - ${d.bairro} (${d.municipio}/${d.uf})`;
-                }
-            } catch(e) { console.error("Erro ao buscar CNPJ"); }
-        }
-    }
+    function gerarID() {
+        document.getElementById('num_id').innerText = Math.floor(10000 + Math.random() * 90000);
+    }
 
-    async function salvarBancoCompleto() {
-        const btn = document.querySelector('.btn-save');
-        const num = document.getElementById('num_id').innerText;
-        const el = document.getElementById('ordem-documento');
-        
-        btn.disabled = true;
-        btn.innerText = "⏳ PROCESSANDO...";
+    // NOVA FUNÇÃO DE BUSCA
+    async function buscarOrdens() {
+        const termo = document.getElementById('input_busca').value;
+        if(!termo) return;
 
-        const opt = {
-            margin: 0,
-            filename: `Coleta_Jobren_${num}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
+        const { data, error } = await _supabase
+            .from('coletas_pro')
+            .select('*')
+            .or(`cnpj.eq.${termo},numero_coleta.eq.${termo}`)
+            .order('data_criacao', { ascending: false });
 
-        try {
-            // 1. Gera PDF
-            const pdfBlob = await html2pdf().set(opt).from(el).output('blob');
-            const path = `pdf/coleta_${num}.pdf`;
-            
-            // 2. Upload Storage
-            await _supabase.storage.from('documentos_coleta').upload(path, pdfBlob, { upsert: true });
-            const { data: { publicUrl } } = _supabase.storage.from('documentos_coleta').getPublicUrl(path);
+        const lista = document.getElementById('lista_busca');
+        const tabela = document.getElementById('tabela-resultados');
+        lista.innerHTML = "";
 
-            // 3. Salva no Banco (Ajustado para suas colunas)
-            const { error } = await _supabase.from('coletas_pro').insert([{
-                numero_coleta: parseInt(num),
-                cnpj: document.getElementById('rem_cnpj').value,
-                razao_social: document.getElementById('rem_nome').value,
-                endereco: document.getElementById('rem_end').value,
-                dest_nome: document.getElementById('dest_nome').value,
-                url_documento: publicUrl,
-                empresa: 'Jobren Transportes'
-            }]);
+        if(data && data.length > 0) {
+            tabela.style.display = "table";
+            data.forEach(item => {
+                lista.innerHTML += `
+                    <tr>
+                        <td>#${item.numero_coleta}</td>
+                        <td>${item.razao_social}</td>
+                        <td>${item.dest_nome}</td>
+                        <td><a href="${item.url_documento}" target="_blank" class="btn-link">📥 BAIXAR PDF</a></td>
+                    </tr>
+                `;
+            });
+        } else {
+            tabela.style.display = "none";
+            alert("Nenhuma ordem encontrada.");
+        }
+    }
 
-            if(error) throw error;
+    async function fetchCompany(t) {
+        const c = document.getElementById(t+'_cnpj').value.replace(/\D/g,'');
+        if(c.length >= 11) {
+            try {
+                const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${c}`);
+                const d = await r.json();
+                if(d.razao_social) {
+                    document.getElementById(t+'_nome').value = d.razao_social;
+                    document.getElementById(t+'_end').value = `${d.logradouro}, ${d.numero} - ${d.bairro} (${d.municipio}/${d.uf})`;
+                }
+            } catch(e) { console.error("Erro ao buscar CNPJ"); }
+        }
+    }
 
-            // 4. Download
-            await html2pdf().set(opt).from(el).save();
-            alert("✅ Ordem #" + num + " salva e PDF gerado com sucesso!");
-            location.reload();
+    async function salvarBancoCompleto() {
+        const btn = document.querySelector('.btn-save');
+        const num = document.getElementById('num_id').innerText;
+        const el = document.getElementById('ordem-documento');
+        
+        btn.disabled = true;
+        btn.innerText = "⏳ PROCESSANDO...";
 
-        } catch (e) { 
-            alert("❌ Erro: " + e.message); 
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "💾 SALVAR NO BANCO";
-        }
-    }
+        const opt = {
+            margin: 0,
+            filename: `Coleta_Jobren_${num}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
 
-    function gerarPDF() {
-        const num = document.getElementById('num_id').innerText;
-        const el = document.getElementById('ordem-documento');
-        html2pdf().set({ 
-            margin: 0, 
-            filename: `Coleta_${num}.pdf`, 
-            html2canvas: { scale: 2 },
-            jsPDF: { format: 'a4' } 
-        }).from(el).save();
-    }
+        try {
+            const pdfBlob = await html2pdf().set(opt).from(el).output('blob');
+            const path = `pdf/coleta_${num}.pdf`;
+            
+            await _supabase.storage.from('documentos_coleta').upload(path, pdfBlob, { upsert: true });
+            const { data: { publicUrl } } = _supabase.storage.from('documentos_coleta').getPublicUrl(path);
+
+            const { error } = await _supabase.from('coletas_pro').insert([{
+                numero_coleta: parseInt(num),
+                cnpj: document.getElementById('rem_cnpj').value,
+                razao_social: document.getElementById('rem_nome').value,
+                endereco: document.getElementById('rem_end').value,
+                dest_nome: document.getElementById('dest_nome').value,
+                url_documento: publicUrl,
+                empresa: 'Jobren Transportes'
+            }]);
+
+            if(error) throw error;
+
+            await html2pdf().set(opt).from(el).save();
+            alert("✅ Ordem #" + num + " salva com sucesso!");
+            gerarID();
+        } catch (e) { 
+            alert("❌ Erro: " + e.message); 
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "💾 SALVAR NO BANCO";
+        }
+    }
+
+    function gerarPDF() {
+        const num = document.getElementById('num_id').innerText;
+        const el = document.getElementById('ordem-documento');
+        html2pdf().set({ 
+            margin: 0, 
+            filename: `Coleta_${num}.pdf`, 
+            html2canvas: { scale: 2 },
+            jsPDF: { format: 'a4' } 
+        }).from(el).save();
+    }
 </script>
 </body>
-</html> 
